@@ -2,6 +2,7 @@ package com.andrerinas.openheadunit.app
 
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.bluetooth.BluetoothClass
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -20,15 +21,10 @@ class AutoStartReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
-        // Use device-protected storage so the BT MACs are readable during locked boot
-        val targetMacs = Settings.getAutoStartBtMacs(context)
-
-        if (targetMacs.isEmpty()) return
-        
         val isLocked = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && 
                       !(context.getSystemService(Context.USER_SERVICE) as UserManager).isUserUnlocked
         
-        // [FIX] Don't trigger auto-start if we are already connected!
+        // Don't trigger auto-start if we are already connected!
         // This prevents activity restarts if BT reconnects during a session.
         if (!isLocked && com.andrerinas.openheadunit.App.provide(context).commManager.isConnected) {
             AppLog.d("AutoStartReceiver: Already connected to Android Auto. Ignoring BT event.")
@@ -43,41 +39,74 @@ class AutoStartReceiver : BroadcastReceiver() {
                 intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
             }
 
-            AppLog.i("BT Device connected: ${device?.name} (${device?.address})")
+            if (device == null) return
 
-            if (device != null && targetMacs.contains(device.address)) {
-                AppLog.i("MATCH! Starting AapService via Bluetooth Auto-start...")
+            AppLog.i("BT Device connected: ${device.name} (${device.address})")
 
-                // Start the service to make the app alive. Explicit action so onStartCommand
-                // re-arms wireless mode even if the service process was already running from
-                // an earlier session (onCreate's init only runs once) — see ACTION_BT_AUTO_START.
-                val serviceIntent = Intent(context, AapService::class.java).setAction(AapService.ACTION_BT_AUTO_START)
-                var serviceStarted = true
-                try {
-                    androidx.core.content.ContextCompat.startForegroundService(context, serviceIntent)
-                } catch (e: Exception) {
-                    serviceStarted = false
-                    AppLog.e("Failed to start AapService from background: ${e.message}")
-                }
+            // Filter out non-phone devices like OBD scanners, Bluetooth remotes/mice, etc.
+            val btClass = try { device.bluetoothClass } catch (_: SecurityException) { null }
+            val isPeripheral = btClass?.majorDeviceClass == BluetoothClass.Device.Major.PERIPHERAL
+            val isObd = (device.name?.contains("OBD", ignoreCase = true) == true) || 
+                        (device.name?.contains("ELM327", ignoreCase = true) == true)
+            if (isPeripheral || isObd) {
+                AppLog.d("AutoStartReceiver: Ignoring non-phone Bluetooth device: ${device.name} (${device.address})")
+                return
+            }
 
-                // Also attempt to start the UI (might be blocked on Android 10+ without special permission)
-                val launchIntent = Intent(context, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(MainActivity.EXTRA_LAUNCH_SOURCE, "Bluetooth auto-start")
-                }
-                try {
-                    context.startActivity(launchIntent)
-                } catch (e: Exception) {
-                    AppLog.w("Could not start UI from background (expected on Android 10+): ${e.message}")
-                }
+            val removedMacs = if (!isLocked) App.provide(context).settings.autoStartBluetoothDeviceMacsRemoved else emptySet()
+            if (device.address in removedMacs) {
+                AppLog.d("AutoStartReceiver: Device explicitly removed by user: ${device.address}. Ignoring.")
+                return
+            }
 
-                // Android 12+ refuses a background foreground-service start unless the app is
-                // exempt, and a blocked startActivity() does not throw, so nothing above would
-                // bring the app up. A full-screen notification is still allowed to open the
-                // activity, which starts the service itself — as WifiAutoStartReceiver does.
-                if (!serviceStarted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    showLaunchNotification(context, launchIntent, device.name ?: device.address)
+            // Auto-detect and register this device so user never needs to reconnect inside app
+            val targetMacs = Settings.getAutoStartBtMacs(context)
+            val devName = device.name?.takeIf { it.isNotBlank() } ?: device.address
+
+            if (!targetMacs.contains(device.address)) {
+                val updated = targetMacs + device.address
+                if (!isLocked) {
+                    val settings = App.provide(context).settings
+                    settings.autoStartBluetoothDeviceMacs = updated
+                    settings.autoStartBluetoothDeviceName = devName
                 }
+                Settings.syncAutoStartBtMacsToDeviceStorage(context, updated)
+                AppLog.i("AutoStartReceiver: Auto-registered connected Bluetooth phone: $devName (${device.address})")
+            }
+
+            AppLog.i("Starting AapService via Bluetooth Auto-start for $devName...")
+
+            // Start the service to make the app alive. Explicit action so onStartCommand
+            // re-arms wireless mode even if the service process was already running from
+            // an earlier session (onCreate's init only runs once) — see ACTION_BT_AUTO_START.
+            val serviceIntent = Intent(context, AapService::class.java).setAction(AapService.ACTION_BT_AUTO_START).apply {
+                putExtra(AapService.EXTRA_MAC, device.address)
+            }
+            var serviceStarted = true
+            try {
+                androidx.core.content.ContextCompat.startForegroundService(context, serviceIntent)
+            } catch (e: Exception) {
+                serviceStarted = false
+                AppLog.e("Failed to start AapService from background: ${e.message}")
+            }
+
+            // Also attempt to start the UI
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra(MainActivity.EXTRA_LAUNCH_SOURCE, "Bluetooth auto-start")
+            }
+            try {
+                context.startActivity(launchIntent)
+            } catch (e: Exception) {
+                AppLog.w("Could not start UI from background (expected on Android 10+): ${e.message}")
+            }
+
+            // Android 12+ refuses a background foreground-service start unless the app is
+            // exempt, and a blocked startActivity() does not throw, so nothing above would
+            // bring the app up. A full-screen notification is still allowed to open the
+            // activity, which starts the service itself — as WifiAutoStartReceiver does.
+            if (!serviceStarted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                showLaunchNotification(context, launchIntent, devName)
             }
         }
     }

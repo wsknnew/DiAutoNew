@@ -55,6 +55,7 @@ class AudioMixer(
 
     // The single AudioTrack
     private var audioTrack: AudioTrack? = null
+    private var equalizer: Equalizer? = null
 
     // Per-channel configuration
     private val channelConfigs = ConcurrentHashMap<Int, ChannelConfig>()
@@ -151,8 +152,10 @@ class AudioMixer(
                     try {
                         val sessionId = track.audioSessionId
                         if (sessionId != AudioManager.AUDIO_SESSION_ID_GENERATE && sessionId > 0) {
-                            val equalizer = Equalizer(0, sessionId)
-                            equalizer.enabled = true
+                            equalizer?.release()
+                            val eq = Equalizer(0, sessionId)
+                            eq.enabled = true
+                            equalizer = eq
                             AppLog.i("$TAG: Attached dummy Equalizer to audioSessionId $sessionId to trigger HW DSP")
                         }
                     } catch (t: Throwable) {
@@ -190,6 +193,10 @@ class AudioMixer(
         }
         mixThread = null
 
+        try {
+            equalizer?.release()
+            equalizer = null
+        } catch (_: Exception) {}
         try {
             audioTrack?.stop()
         } catch (e: Exception) {
@@ -362,18 +369,15 @@ class AudioMixer(
         while (running.get()) {
             // Clear mix buffer
             mixBuffer.fill(0)
-            var hasData = false
-
             // Process each registered channel
             for ((channel, buffer) in channelBuffers) {
                 val gain = channelGains[channel] ?: 1.0f
-                var isPreRolling = channelPreRolling[channel] ?: true
+                val isPreRolling = channelPreRolling[channel] ?: true
 
                 if (isPreRolling) {
                     // Check if buffer has accumulated enough samples (e.g., 3 frames = 60ms) to start playing
                     if (buffer.size() >= FRAMES_PER_CYCLE * 3) {
                         channelPreRolling[channel] = false
-                        isPreRolling = false
                     } else {
                         // Keep pre-rolling, play silence for this channel
                         continue
@@ -384,7 +388,6 @@ class AudioMixer(
                 if (buffer.size() >= FRAMES_PER_CYCLE) {
                     val read = buffer.read(tempChannelBuffer, 0, FRAMES_PER_CYCLE)
                     if (read > 0) {
-                        hasData = true
                         for (i in 0 until read) {
                             mixBuffer[i] += (tempChannelBuffer[i] * gain).toInt()
                         }

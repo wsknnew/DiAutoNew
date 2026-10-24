@@ -209,16 +209,16 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
     }
 
     override fun disconnect() {
-        if (transport.isConnected) {
-            try {
+        try {
+            if (!transport.isClosed) {
                 transport.close()
-            } catch (e: IOException) {
-                AppLog.e(e)
             }
-
+        } catch (e: Exception) {
+            AppLog.e(e)
+        } finally {
+            input = null
+            output = null
         }
-        input = null
-        output = null
     }
 
     private fun applyLowLatencySocketOptions(beforeConnect: Boolean) {

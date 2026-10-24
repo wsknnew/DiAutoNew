@@ -24,8 +24,8 @@ object TouchCoordinateMapper {
         val surfaceH = inputSurfaceHeight.coerceAtLeast(1f)
         val px = if (hudMirroring) surfaceW - rawX else rawX
 
-        val uiW = negotiatedWidth - marginWidth
-        val uiH = negotiatedHeight - marginHeight
+        val uiW = (negotiatedWidth - marginWidth).coerceAtLeast(1f)
+        val uiH = (negotiatedHeight - marginHeight).coerceAtLeast(1f)
 
         val videoX: Float
         val videoY: Float
@@ -34,8 +34,8 @@ object TouchCoordinateMapper {
             videoX = (px / surfaceW) * uiW
             videoY = (rawY / surfaceH) * uiH
         } else {
-            val uiRatio = uiW / uiH
-            val viewRatio = surfaceW / surfaceH
+            val uiRatio = (uiW / uiH).takeIf { it.isFinite() && it > 0f } ?: 1f
+            val viewRatio = (surfaceW / surfaceH).takeIf { it.isFinite() && it > 0f } ?: 1f
 
             var displayedUiW = surfaceW
             var displayedUiH = surfaceH
@@ -52,13 +52,16 @@ object TouchCoordinateMapper {
             val localX = px - uiLeft
             val localY = rawY - uiTop
 
-            videoX = (localX / displayedUiW) * uiW
-            videoY = (localY / displayedUiH) * uiH
+            videoX = if (displayedUiW > 0f) (localX / displayedUiW) * uiW else 0f
+            videoY = if (displayedUiH > 0f) (localY / displayedUiH) * uiH else 0f
         }
 
+        val clampedX = if (videoX.isFinite()) videoX.roundToInt().coerceIn(0, negotiatedWidth) else 0
+        val clampedY = if (videoY.isFinite()) videoY.roundToInt().coerceIn(0, negotiatedHeight) else 0
+
         return TouchCoordinate(
-            x = videoX.roundToInt().coerceIn(0, negotiatedWidth),
-            y = videoY.roundToInt().coerceIn(0, negotiatedHeight)
+            x = clampedX,
+            y = clampedY
         )
     }
 }

@@ -1,0 +1,66 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release DiAuto APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Pinned NDK and CMake
+        run: |
+          for attempt in 1 2 3; do
+            sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865" "cmake;3.22.1" && exit 0
+            echo "sdkmanager attempt $attempt failed; retrying in 15s..." >&2
+            sleep 15
+          done
+          echo "sdkmanager failed after 3 attempts" >&2
+          exit 1
+
+      - name: Check Translations
+        run: python3 scripts/check_localization.py
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Release APK
+        run: ./gradlew :app:assembleGithubRelease --stacktrace
+
+      - name: Find Release APK
+        id: apk_finder
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/github/release -name "*.apk" | head -n 1)
+          echo "Found APK at: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ steps.apk_finder.outputs.apk_path }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true

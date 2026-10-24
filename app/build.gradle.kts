@@ -147,22 +147,22 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android.txt"),
                 "proguard-project.txt"
             )
 
             val relConfig = signingConfigs.getByName("release")
-            if (relConfig.storeFile != null && relConfig.storeFile!!.exists()) {
-                signingConfig = relConfig
+            signingConfig = if (relConfig.storeFile != null && relConfig.storeFile!!.exists()) {
+                relConfig
+            } else {
+                signingConfigs.getByName("debug")
             }
         }
 
         getByName("debug") {
-            applicationIdSuffix = ".bydhudtest"
-            versionNameSuffix = "-hud-test"
         }
     }
 
@@ -201,12 +201,7 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach { output ->
-                var outputFileName = "${variant.applicationId}_${variant.versionName}_debug.apk"
-                if(variant.buildType.name == "release") {
-                    outputFileName = "${variant.applicationId}_${variant.versionName}.apk"
-                    output.outputFileName = outputFileName
-                }
-                output.outputFileName = outputFileName
+                output.outputFileName = "${variant.applicationId}_${variant.versionName}.apk"
             }
     }
 }

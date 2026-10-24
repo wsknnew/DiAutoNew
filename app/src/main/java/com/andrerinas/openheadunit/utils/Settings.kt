@@ -51,12 +51,21 @@ class Settings(private val context: Context) {
 
     var lastKnownLocation: Location
         get() {
-            val latitudeBits = prefs.getLong("last-loc-latitude", (32.0864169).toRawBits())
-            val longitudeBits = prefs.getLong("last-loc-longitude", (34.7557871).toRawBits())
+            val latitudeBits = prefs.getLong("last-loc-latitude", DEFAULT_LOCATION_LATITUDE.toRawBits())
+            val longitudeBits = prefs.getLong("last-loc-longitude", DEFAULT_LOCATION_LONGITUDE.toRawBits())
+
+            var lat = java.lang.Double.longBitsToDouble(latitudeBits)
+            var lon = java.lang.Double.longBitsToDouble(longitudeBits)
+
+            // Migrate legacy default coordinates to Jakarta, Indonesia
+            if (kotlin.math.abs(lat - 32.0864169) < 0.0001 && kotlin.math.abs(lon - 34.7557871) < 0.0001) {
+                lat = DEFAULT_LOCATION_LATITUDE
+                lon = DEFAULT_LOCATION_LONGITUDE
+            }
 
             val location = Location("")
-            location.latitude = java.lang.Double.longBitsToDouble(latitudeBits)
-            location.longitude = java.lang.Double.longBitsToDouble(longitudeBits)
+            location.latitude = lat
+            location.longitude = lon
             return location
         }
         set(location) {
@@ -532,9 +541,24 @@ class Settings(private val context: Context) {
                 prefs.edit().putInt("wifi-connection-mode", 3).remove("native-aa-wireless").apply()
                 return 3
             }
+            if (useHotspotAsDefaultWireless) {
+                return prefs.getInt("wifi-connection-mode", 1) // Default to 1 (Headunit Server / Phone Hotspot)
+            }
             return prefs.getInt("wifi-connection-mode", 3) // Native Android Auto; no companion app
         }
         set(value) { prefs.edit().putInt("wifi-connection-mode", value).apply() }
+
+    var autoConnectOnHotspot: Boolean
+        get() = prefs.getBoolean("auto-connect-on-hotspot", true)
+        set(value) = prefs.edit().putBoolean("auto-connect-on-hotspot", value).apply()
+
+    var useHotspotAsDefaultWireless: Boolean
+        get() = prefs.getBoolean("use-hotspot-as-default-wireless", true)
+        set(value) = prefs.edit().putBoolean("use-hotspot-as-default-wireless", value).apply()
+
+    var customHotspotPhoneIp: String
+        get() = prefs.getString("custom-hotspot-phone-ip", "")!!
+        set(value) = prefs.edit().putString("custom-hotspot-phone-ip", value).apply()
 
     var videoCodec: String
         get() = prefs.getString("video-codec", "Auto")!!
@@ -741,7 +765,7 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putBoolean("auto-start-self-mode", value).apply() }
 
     var autoStartOnUsb: Boolean
-        get() = prefs.getBoolean("auto-start-on-usb", false)
+        get() = prefs.getBoolean("auto-start-on-usb", true)
         set(value) { prefs.edit().putBoolean("auto-start-on-usb", value).apply() }
 
     var autoStartOnBoot: Boolean
@@ -990,17 +1014,23 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putBoolean("use-fixed-sun-location", value).apply() }
 
     var fixedSunriseLatitude: Double
-        get() = java.lang.Double.longBitsToDouble(
-            prefs.getLong("fixed-sun-latitude", (32.0864169).toRawBits())
-        )
+        get() {
+            val lat = java.lang.Double.longBitsToDouble(
+                prefs.getLong("fixed-sun-latitude", DEFAULT_LOCATION_LATITUDE.toRawBits())
+            )
+            return if (kotlin.math.abs(lat - 32.0864169) < 0.0001) DEFAULT_LOCATION_LATITUDE else lat
+        }
         set(value) {
             prefs.edit().putLong("fixed-sun-latitude", value.toRawBits()).apply()
         }
 
     var fixedSunriseLongitude: Double
-        get() = java.lang.Double.longBitsToDouble(
-            prefs.getLong("fixed-sun-longitude", (34.7557871).toRawBits())
-        )
+        get() {
+            val lon = java.lang.Double.longBitsToDouble(
+                prefs.getLong("fixed-sun-longitude", DEFAULT_LOCATION_LONGITUDE.toRawBits())
+            )
+            return if (kotlin.math.abs(lon - 34.7557871) < 0.0001) DEFAULT_LOCATION_LONGITUDE else lon
+        }
         set(value) {
             prefs.edit().putLong("fixed-sun-longitude", value.toRawBits()).apply()
         }
@@ -1051,6 +1081,10 @@ class Settings(private val context: Context) {
 
     companion object {
         const val PREFS_NAME = "settings"
+
+        /** Default coordinates: Jakarta, Indonesia (-6.2087634, 106.8455990) */
+        const val DEFAULT_LOCATION_LATITUDE = -6.2087634
+        const val DEFAULT_LOCATION_LONGITUDE = 106.8455990
 
         const val CONNECTION_TYPE_WIFI = "wifi"
         const val CONNECTION_TYPE_USB = "usb"
@@ -1222,7 +1256,7 @@ class Settings(private val context: Context) {
             } else {
                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             }
-            return prefs.getBoolean(KEY_AUTO_START_ON_USB, false)
+            return prefs.getBoolean(KEY_AUTO_START_ON_USB, true)
         }
 
         fun syncAutoStartOnUsbToDeviceStorage(context: Context, enabled: Boolean) {
@@ -1456,12 +1490,16 @@ class Settings(private val context: Context) {
 
     var appTheme: AppTheme
         get() {
-            val value = prefs.getInt("app-theme", 0)
-            return AppTheme.fromInt(value) ?: AppTheme.AUTOMATIC
+            val value = prefs.getInt("app-theme", 2)
+            return AppTheme.fromInt(value) ?: AppTheme.DARK
         }
         set(theme) {
             prefs.edit().putInt("app-theme", theme.value).apply()
         }
+
+    var autoConnectOnOpen: Boolean
+        get() = prefs.getBoolean("auto-connect-on-open", true)
+        set(value) { prefs.edit().putBoolean("auto-connect-on-open", value).apply() }
 
     var enableRotary: Boolean
         get() = prefs.getBoolean("enable-rotary", false)
@@ -1472,8 +1510,8 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putBoolean("kill-on-disconnect", value).apply() }
 
     var autoEnableHotspot: Boolean
-        get() = prefs.getBoolean("auto-enable-hotspot", false)
-        set(value) { prefs.edit().putBoolean("auto-enable-hotspot", value).apply() }
+        get() = false
+        set(value) { prefs.edit().putBoolean("auto-enable-hotspot", false).apply() }
 
     var waitForWifiBeforeWifiDirect: Boolean
         get() = prefs.getBoolean("wait-for-wifi-before-wifi-direct", false)
@@ -1497,20 +1535,16 @@ class Settings(private val context: Context) {
         set(value) = prefs.edit().putString("bluetooth-manager-service-name", value).apply()
 
     // Which network the Native AA mode (wifiConnectionMode 3) puts the phone on.
-    // 0 = WiFi Direct, 1 = car hotspot. Legacy local-hotspot value 2 migrates to 1.
-    //
-    // Deliberately not folded into helperConnectionStrategy: that setting belongs to mode 2 and
-    // means something different in every one of its five values. A wireless mode that reuses
-    // another mode's selector is how the two call sites of the old usesWifiDirect() drifted apart.
+    // Locked to 0 (WiFi Direct). Car hotspot (1/2) is disabled to prevent stalls on units without hotspot.
     var nativeApTransport: Int
         get() {
-            val stored = prefs.getInt("native-ap-transport", 1)
-            return if (stored == 2) {
-                prefs.edit().putInt("native-ap-transport", 1).apply()
-                1
-            } else stored
+            val stored = prefs.getInt("native-ap-transport", 0)
+            if (stored != 0) {
+                prefs.edit().putInt("native-ap-transport", 0).apply()
+            }
+            return 0
         }
-        set(value) = prefs.edit().putInt("native-ap-transport", if (value == 2) 1 else value).apply()
+        set(value) = prefs.edit().putInt("native-ap-transport", 0).apply()
 
     // Whether the Native AA handshake opens with a WifiVersionRequest (Type 4), as real head units
     // and the OEM ZLink app do, instead of going straight to WifiStartRequest.

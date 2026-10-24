@@ -51,14 +51,61 @@
                 android:textStyle="bold"/>
 
             <TextView
+                android:id="@+id/release_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_pill_translucent"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp"
+                android:text="@string/about_release_badge"
+                android:textColor="@color/da_accent"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/modified_by_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/about_modified_info"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/release_date_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/about_release_date"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp" />
+
+            <TextView
                 android:id="@+id/copyright_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Copyright"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="24dp"/>
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="16dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_check_updates"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:text="@string/check_for_updates"
+                android:textColor="@color/da_background"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/da_accent"
+                app:cornerRadius="26dp"
+                app:icon="@drawable/ic_refresh_white"
+                app:iconTint="@color/da_background"
+                android:layout_marginBottom="24dp"
+                style="@style/Widget.Material3.Button" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"

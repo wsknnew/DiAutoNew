@@ -6,39 +6,158 @@
     <color name="da_accent">#A6C8FF</color>
     <color name="da_text">#F1F5FC</color>
     <color name="da_muted">#A8B6CA</color>
-    <string name="da_brand">DiAuto</string>
-    <string name="da_tagline">YOUR PHONE. YOUR DRIVE.</string>
-    <string name="da_headline">A familiar drive.</string>
-    <string name="da_description">Your maps, music and conversations.\nAndroid Auto, right here on your car display.</string>
-    <string name="da_connect">Connect phone</string>
-    <string name="da_open">Open Android Auto</string>
-    <string name="da_ready">Ready when you are</string>
-    <string name="da_connecting">Connecting to your phone…</string>
-    <string name="da_connected">Android Auto is connected</string>
-    <string name="da_hint">Pair your phone in the car’s Bluetooth settings, then choose Connect phone. Keep Bluetooth and Wi-Fi on.</string>
-    <string name="da_wireless">WIRELESS ANDROID AUTO</string>
-    <string name="da_usb">Connect with USB</string>
-    <string name="da_usb_hint">Prefer a cable? Plug in your phone.</string>
-    <string name="da_settings">Settings</string>
-    <string name="da_settings_hint">Make yourself at home.</string>
-    <string name="da_close">Car home</string>
-    <string name="da_pair">Pair a phone</string>
-    <string name="da_no_paired">Pair your Android phone with the car first. Return here when pairing is complete.</string>
-    <string name="da_bluetooth_off">Turn on Bluetooth in the car’s settings to connect your phone.</string>
-    <string name="da_system_settings">Bluetooth settings</string>
-    <string name="da_device">Android phone</string>
-    <string name="da_preferences">Your drive, your way.</string>
-    <string name="da_preferences_hint">Connection, display and sound — all in one place.</string>
-    <string name="da_automation">Automatic connection</string>
-    <string name="da_automation_hint">Start with your car and reconnect to your phone.</string>
-    <string name="da_display">Display and performance</string>
-    <string name="da_display_hint">Picture size, frame rate and audio settings.</string>
-    <string name="da_permissions">Permissions</string>
-    <string name="da_permissions_hint">Check Bluetooth, microphone and location access.</string>
-    <string name="da_about">About DiAuto</string>
-    <string name="da_about_hint">Version, licenses and open-source credits.</string>
-    <string name="da_saved_hint">Changes to video settings apply on your next connection.</string>
-    <string name="da_settings_subtitle">Tune your display, sound and connection.</string>
-    <string name="da_bluetooth_music">Music through car Bluetooth</string>
-    <string name="da_bluetooth_music_hint">Keep music with the car’s Bluetooth player. DiAuto leaves its audio focus alone; navigation and assistant audio remain available. Reconnect Android Auto after changing this.</string>
+    <string name="da_brand" translatable="false">DiAuto</string>
+    <string name="da_tagline" translatable="false">YOUR PHONE. YOUR DRIVE.</string>
+    <string name="da_headline" translatable="false">A familiar drive.</string>
+    <string name="da_description" translatable="false">Your maps, music and conversations.\nAndroid Auto, right here on your car display.</string>
+    <string name="da_connect" translatable="false">Connect phone</string>
+    <string name="da_open" translatable="false">Open Android Auto</string>
+    <string name="da_ready" translatable="false">Ready when you are</string>
+    <string name="da_connecting" translatable="false">Connecting to your phone…</string>
+    <string name="da_connected" translatable="false">Android Auto is connected</string>
+    <string name="da_hint" translatable="false">Pair your phone in the car’s Bluetooth settings, then choose Connect phone. Keep Bluetooth and Wi-Fi on.</string>
+    <string name="da_wireless" translatable="false">WIRELESS ANDROID AUTO</string>
+    <string name="da_usb" translatable="false">Connect with USB</string>
+    <string name="da_usb_hint" translatable="false">Prefer a cable? Plug in your phone.</string>
+    <string name="da_settings" translatable="false">Settings</string>
+    <string name="da_settings_hint" translatable="false">Make yourself at home.</string>
+    <string name="da_close" translatable="false">Car home</string>
+    <string name="da_pair" translatable="false">Pair a phone</string>
+    <string name="da_no_paired" translatable="false">Pair your Android phone with the car first. Return here when pairing is complete.</string>
+    <string name="da_bluetooth_off" translatable="false">Turn on Bluetooth in the car’s settings to connect your phone.</string>
+    <string name="da_system_settings" translatable="false">Bluetooth settings</string>
+    <string name="da_device" translatable="false">Android phone</string>
+    <string name="da_preferences" translatable="false">Your drive, your way.</string>
+    <string name="da_preferences_hint" translatable="false">Connection, display and sound — all in one place.</string>
+    <string name="da_automation" translatable="false">Automatic connection</string>
+    <string name="da_automation_hint" translatable="false">Start with your car and reconnect to your phone.</string>
+    <string name="da_display" translatable="false">Display and performance</string>
+    <string name="da_display_hint" translatable="false">Picture size, frame rate and audio settings.</string>
+    <string name="da_permissions" translatable="false">Permissions</string>
+    <string name="da_permissions_hint" translatable="false">Check Bluetooth, microphone and location access.</string>
+    <string name="da_about" translatable="false">About DiAuto</string>
+    <string name="da_about_hint" translatable="false">Version, licenses and open-source credits.</string>
+    <string name="da_saved_hint" translatable="false">Changes to video settings apply on your next connection.</string>
+    <string name="da_settings_subtitle" translatable="false">Tune your display, sound and connection.</string>
+    <string name="da_theme_settings" translatable="false">Appearance &amp; Dark Theme</string>
+    <string name="da_theme_settings_hint" translatable="false">Dark theme, brightness sync, and display day/night rules.</string>
+    <string name="da_connect_to" translatable="false">Connect to %s</string>
+    <string name="da_switch_phone" translatable="false">Switch phone</string>
+    <string name="da_paired_phone" translatable="false">Paired phone</string>
+    <string name="da_connecting_to" translatable="false">Connecting to %s…</string>
+    <string name="da_auto_connect_on_open" translatable="false">Auto-connect when opened</string>
+    <string name="da_auto_connect_on_open_hint" translatable="false">Automatically attempt to connect wirelessly when DiAuto opens.</string>
+    <string name="da_bluetooth_music" translatable="false">Music through car Bluetooth</string>
+    <string name="da_bluetooth_music_hint" translatable="false">Keep music with the car’s Bluetooth player. DiAuto leaves its audio focus alone; navigation and assistant audio remain available. Reconnect Android Auto after changing this.</string>
+
+    <!-- Phone Hotspot & Wi-Fi Android Auto -->
+    <string name="hotspot_connection_title" translatable="false">Android Auto via Hotspot</string>
+    <string name="hotspot_connection_subtitle" translatable="false">Connect using your phone’s personal hotspot or portable Wi-Fi without needing a car SIM card.</string>
+    <string name="hotspot_connection_hint" translatable="false">Run Android Auto through phone hotspot or local Wi-Fi. Ideal for head units without SIM card.</string>
+    <string name="da_hotspot_connect" translatable="false">Connect via Hotspot</string>
+    <string name="checking_network" translatable="false">Checking Network…</string>
+    <string name="phone_hotspot_connected" translatable="false">Connected to Phone Hotspot</string>
+    <string name="phone_hotspot" translatable="false">Phone Hotspot</string>
+    <string name="wifi_network_connected" translatable="false">Connected to Wi-Fi Network</string>
+    <string name="local_network" translatable="false">Local Network</string>
+    <string name="no_wifi_connection" translatable="false">No Wi-Fi Connection</string>
+    <string name="no_wifi_connection_desc" translatable="false">Head unit is not connected to Wi-Fi. Turn on your phone’s hotspot and connect this head unit in Wi-Fi settings.</string>
+    <string name="open_wifi_settings" translatable="false">Open Wi-Fi Settings</string>
+    <string name="connected_network_label" translatable="false">Connected Network</string>
+    <string name="head_unit_ip_format" translatable="false">Head Unit IP: %s</string>
+    <string name="head_unit_ip_not_connected" translatable="false">Head Unit IP: Not connected to Wi-Fi</string>
+    <string name="gateway_ip_format" translatable="false">Phone / Hotspot IP: %s</string>
+    <string name="gateway_ip_none" translatable="false">Phone / Gateway: None</string>
+    <string name="aa_server_ready" translatable="false">AA Server Ready (Port 5277)</string>
+    <string name="aa_server_waiting" translatable="false">Waiting for Server (Port 5277)</string>
+    <string name="connect_to_phone_hotspot" translatable="false">Connect via Phone Hotspot</string>
+    <string name="connect_to_phone_hotspot_ip" translatable="false">Connect to Phone (%s:5277)</string>
+    <string name="scan_network_for_phone" translatable="false">Scan Wi-Fi for Android Auto</string>
+    <string name="scanning_network_for_phone" translatable="false">Scanning Wi-Fi network for phone…</string>
+    <string name="no_gateway_found" translatable="false">No hotspot gateway IP found. Connect to your phone’s Wi-Fi hotspot first.</string>
+    <string name="auto_connect_on_hotspot" translatable="false">Auto-connect when Hotspot is active</string>
+    <string name="auto_connect_on_hotspot_hint" translatable="false">Automatically start Android Auto when this head unit connects to your phone’s hotspot.</string>
+    <string name="use_hotspot_default" translatable="false">Use Hotspot as primary connection</string>
+    <string name="use_hotspot_default_hint" translatable="false">Tapping \'Connect phone\' on the home screen will connect to your phone’s hotspot instead of Bluetooth.</string>
+    <string name="hotspot_instructions_title" translatable="false">How to connect via Hotspot</string>
+    <string name="hotspot_step_1" translatable="false">1. Turn on Personal Hotspot on your phone (or turn on pocket Wi-Fi router).</string>
+    <string name="hotspot_step_2" translatable="false">2. Connect this head unit to your hotspot in car Wi-Fi settings.</string>
+    <string name="hotspot_step_3" translatable="false">3. On your phone: Open Android Auto settings → tap \'Version\' 10 times to unlock Developer settings → tap top-right menu (⋮) → \'Start headunit server\' (or install the free \'WiFi Launcher\' companion app).</string>
+    <string name="hotspot_step_4" translatable="false">4. Tap \'Connect via Phone Hotspot\' above!</string>
+    <string name="edit_phone_ip" translatable="false">Edit Phone IP</string>
+
+    <!-- Bluetooth Grouped Selection -->
+    <string name="select_phone_title" translatable="false">Select Android Phone</string>
+    <string name="select_phone_subtitle" translatable="false">Choose a paired phone or tap a nearby phone to pair</string>
+    <string name="paired_phones_header" translatable="false">PAIRED PHONES</string>
+    <string name="available_phones_header" translatable="false">AVAILABLE / NEARBY PHONES</string>
+    <string name="scanning_nearby" translatable="false">Scanning for nearby phones…</string>
+    <string name="scan_finished" translatable="false">Scan complete</string>
+    <string name="no_paired_devices_found" translatable="false">No paired phones found</string>
+    <string name="make_phone_discoverable_hint" translatable="false">No other phones found. Open Bluetooth settings on your phone to make it discoverable.</string>
+    <string name="preferred_device_label" translatable="false">Preferred • Ready to connect</string>
+    <string name="paired_ready" translatable="false">Paired • Tap to connect</string>
+    <string name="active_badge" translatable="false">Preferred</string>
+    <string name="unpaired_phone_status" translatable="false">Nearby phone • Tap to pair</string>
+    <string name="pair_and_connect" translatable="false">Pair &amp; Connect</string>
+    <string name="pairing_in_progress" translatable="false">Pairing in progress…</string>
+    <string name="pairing_with_phone" translatable="false">Pairing with %s… Please confirm the pairing code on your phone screen.</string>
+    <string name="paired_success" translatable="false">Successfully paired with %s!</string>
+    <string name="pairing_failed_toast" translatable="false">Pairing failed. Try pairing in car Bluetooth settings.</string>
+    <string name="copy" translatable="false">Copy</string>
+    <string name="refresh" translatable="false">Refresh</string>
+
+    <!-- Release & Custom Edition Info -->
+    <string name="about_release_badge" translatable="false">Release v0.3.12</string>
+    <string name="about_modified_info" translatable="false">Modified by User • Custom Edition</string>
+    <string name="about_release_date" translatable="false">Release Date: October 22, 2026</string>
+
+    <!-- UI/UX Enhancements -->
+    <string name="theme_dark_enabled" translatable="false">Dark Theme enabled</string>
+    <string name="theme_auto_enabled" translatable="false">Automatic Theme enabled</string>
+    <string name="cancel_connecting" translatable="false">Cancel connection</string>
+    <string name="connection_cancelled" translatable="false">Connection cancelled</string>
+
+    <!-- Cockpit & Auto-Connect UI -->
+    <string name="auto_connecting_countdown" translatable="false">Auto-connecting to %1$s in %2$ds…</string>
+    <string name="da_auto_connecting_hotspot_countdown" translatable="false">Auto-connecting to Phone Hotspot in %1$ds…</string>
+    <string name="step_1_bt" translatable="false">Step 1/3: Bluetooth handshake…</string>
+    <string name="step_2_wifi" translatable="false">Step 2/3: Linking Wi-Fi Direct…</string>
+    <string name="step_3_aa" translatable="false">Step 3/3: Starting Android Auto…</string>
+    <string name="da_wired_usb" translatable="false">Wired USB Projection</string>
+    <string name="da_wired_usb_hint" translatable="false">Plug phone into car USB cable</string>
+    <string name="da_phone_hotspot" translatable="false">Phone Hotspot Mode</string>
+    <string name="da_phone_hotspot_hint" translatable="false">Connect via phone’s Wi-Fi hotspot</string>
+    <string name="da_preferences_title" translatable="false">Preferences &amp; Display</string>
+    <string name="da_preferences_desc" translatable="false">Audio, DPI, and theme settings</string>
+
+    <!-- Settings Categories & Driver Controls -->
+    <string name="da_category_essentials" translatable="false">DAILY DRIVING ESSENTIALS</string>
+    <string name="da_category_connectivity" translatable="false">CONNECTIVITY &amp; PHONES</string>
+    <string name="da_category_advanced" translatable="false">VEHICLE &amp; SYSTEM TUNING</string>
+    <string name="da_dpi_scale_title" translatable="false">Screen Size &amp; DPI Scale</string>
+    <string name="da_dpi_scale_hint" translatable="false">Tune UI scale, icons and text size with live preview</string>
+    <string name="da_audio_routing_title" translatable="false">Music via Car Bluetooth</string>
+    <string name="da_audio_routing_hint" translatable="false">Play music via car radio; navigation voice stays in Android Auto</string>
+    <string name="da_audio_routing_enabled" translatable="false">Music routed to Car Bluetooth</string>
+    <string name="da_audio_routing_disabled" translatable="false">All audio routed to Android Auto</string>
+    <string name="da_display_advanced_title" translatable="false">Video &amp; Advanced Display</string>
+    <string name="da_display_advanced_hint" translatable="false">Resolution (720p/1080p), FPS limit, codecs &amp; margin insets</string>
+
+    <!-- Home Cockpit Audio Quick Toggle -->
+    <string name="audio_mode_car_bt" translatable="false">Car BT Audio</string>
+    <string name="audio_mode_aa" translatable="false">AA Audio</string>
+
+    <!-- OTA Update Strings -->
+    <string name="check_for_updates" translatable="false">Check for Updates</string>
+    <string name="checking_for_updates" translatable="false">Checking for updates…</string>
+    <string name="update_available_title" translatable="false">New Update Available</string>
+    <string name="update_up_to_date" translatable="false">DiAuto is up to date (%s)</string>
+    <string name="update_download_install" translatable="false">Download &amp; Install</string>
+    <string name="update_downloading" translatable="false">Downloading update… %d%%</string>
+    <string name="update_failed" translatable="false">Update check failed. Check your internet connection.</string>
+    <string name="no_releases_found" translatable="false">No releases published on GitHub yet.</string>
+    <string name="update_changelog_header" translatable="false">What\'s New:</string>
+    <string name="update_installing" translatable="false">Installing update…</string>
+    <string name="later" translatable="false">Later</string>
 </resources>

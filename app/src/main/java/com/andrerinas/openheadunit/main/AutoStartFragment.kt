@@ -39,6 +39,7 @@ class AutoStartFragment : Fragment() {
     private var saveButton: MaterialButton? = null
 
     private var pendingAutoStartOnBoot: Boolean? = null
+    private var pendingAutoConnectOnOpen: Boolean? = null
     private var pendingAutoStartOnScreenOn: Boolean? = null
     private var pendingListenForUsbDevices: Boolean? = null
     private var pendingAutoStartOnUsb: Boolean? = null
@@ -78,6 +79,7 @@ class AutoStartFragment : Fragment() {
         settings = App.provide(requireContext()).settings
 
         pendingAutoStartOnBoot = settings.autoStartOnBoot
+        pendingAutoConnectOnOpen = settings.autoConnectOnOpen
         pendingAutoStartOnScreenOn = settings.autoStartOnScreenOn
         pendingListenForUsbDevices = settings.listenForUsbDevices
         pendingAutoStartOnUsb = settings.autoStartOnUsb
@@ -155,6 +157,9 @@ class AutoStartFragment : Fragment() {
         pendingAutoStartOnBoot?.let {
             settings.autoStartOnBoot = it
             Settings.syncAutoStartOnBootToDeviceStorage(requireContext(), it)
+        }
+        pendingAutoConnectOnOpen?.let {
+            settings.autoConnectOnOpen = it
         }
         pendingAutoStartOnScreenOn?.let {
             settings.autoStartOnScreenOn = it
@@ -255,6 +260,7 @@ class AutoStartFragment : Fragment() {
 
     private fun checkChanges() {
         hasChanges = pendingAutoStartOnBoot != settings.autoStartOnBoot ||
+                pendingAutoConnectOnOpen != settings.autoConnectOnOpen ||
                 pendingAutoStartOnScreenOn != settings.autoStartOnScreenOn ||
                 pendingListenForUsbDevices != settings.listenForUsbDevices ||
                 pendingAutoStartOnUsb != settings.autoStartOnUsb ||
@@ -284,6 +290,18 @@ class AutoStartFragment : Fragment() {
             isChecked = pendingAutoStartOnBoot!!,
             onCheckedChanged = { isChecked ->
                 pendingAutoStartOnBoot = isChecked
+                checkChanges()
+                updateSettingsList()
+            }
+        ))
+
+        items.add(SettingItem.ToggleSettingEntry(
+            stableId = "autoConnectOnOpen",
+            nameResId = R.string.da_auto_connect_on_open,
+            descriptionResId = R.string.da_auto_connect_on_open_hint,
+            isChecked = pendingAutoConnectOnOpen!!,
+            onCheckedChanged = { isChecked ->
+                pendingAutoConnectOnOpen = isChecked
                 checkChanges()
                 updateSettingsList()
             }

@@ -11,7 +11,9 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.andrerinas.openheadunit.R
+import com.andrerinas.openheadunit.ota.OtaUpdateManager
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
 import java.util.Calendar
 
 class AboutFragment : Fragment() {
@@ -32,13 +34,22 @@ class AboutFragment : Fragment() {
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         copyrightText.text = getString(R.string.copyright, currentYear)
 
+        val btnCheckUpdates = view.findViewById<MaterialButton>(R.id.btn_check_updates)
+        btnCheckUpdates?.setOnClickListener {
+            OtaUpdateManager.checkWithUi(requireActivity(), silentIfUpToDate = false)
+        }
+
         val contentText = view.findViewById<TextView>(R.id.about_content_text)
         
         val sb = StringBuilder()
+        sb.append("<h3>DiAuto Release Version</h3>")
+        sb.append("<b>Version:</b> ${com.andrerinas.openheadunit.BuildConfig.VERSION_NAME}<br/>")
+        sb.append("<b>Release Date:</b> October 22, 2026<br/>")
+        sb.append("<b>Modified by:</b> User (Custom Release Edition)<br/>")
+        sb.append("<b>Enhancements:</b> Automotive Dark Theme, Grouped Wireless Phone Selection (Paired &amp; Nearby with In-App Pairing), and Android Auto via Phone Hotspot / Wi-Fi.<br/><br/>")
         sb.append("<b>Special thanks to Mike Reidis for the original idea and android auto protocol and code.</b><br/>")
         sb.append("<a href=\"https://github.com/mikereidis/headunit\">https://github.com/mikereidis/headunit</a><br/><br/>")
-        sb.append("<h3>DiAuto ${com.andrerinas.openheadunit.BuildConfig.VERSION_NAME}</h3>")
-        sb.append("<a href=\"https://github.com/shihabal3amri/DiAuto\">DiAuto source and releases</a><br/>")
+        sb.append("<a href=\"https://github.com/wsknnew/DiAutoNew\">DiAuto source and releases</a><br/>")
         sb.append("An independent Android Auto receiver for BYD DiLink. Based on ")
         sb.append("<a href=\"https://github.com/andreknieriem/open-headunit\">Open Headunit</a>. ")
         sb.append("Thanks to its authors and contributors. Not affiliated with Google or BYD.<br/><br/>")

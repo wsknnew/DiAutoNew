@@ -1172,13 +1172,12 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                         try {
                             val vw = mp.videoWidth
                             val vh = mp.videoHeight
-                            val ov = overlay
-                            val cv = customVideo
-                            if (ov != null && cv != null) {
-                                val cw = ov.width
-                                val ch = ov.height
+                            val targetOverlay = overlay
+                            if (targetOverlay != null) {
+                                val cw = targetOverlay.width
+                                val ch = targetOverlay.height
                                 if (cw > 0 && ch > 0) {
-                                    val lp = cv.layoutParams as FrameLayout.LayoutParams
+                                    val lp = customVideo.layoutParams as FrameLayout.LayoutParams
                                     if (keepRatio && vw > 0 && vh > 0) {
                                         val videoRatio = vw.toFloat() / vh
                                         val containerRatio = cw.toFloat() / ch
@@ -1198,7 +1197,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                                         lp.height = (ch * scale).toInt()
                                     }
                                     lp.gravity = android.view.Gravity.CENTER
-                                    cv.layoutParams = lp
+                                    customVideo.layoutParams = lp
                                 }
                             }
                         } catch (e: Exception) {
@@ -1273,8 +1272,8 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                 ?.alpha(0f)
                 ?.setDuration(300)
                 ?.withEndAction {
-                    loadingOverlay?.visibility = View.GONE
-                    loadingOverlay?.alpha = 1f
+                    loadingOverlay.visibility = View.GONE
+                    loadingOverlay.alpha = 1f
                     touchOverlayView?.requestFocus()
                 }?.start()
                 ?: run {
@@ -1547,7 +1546,8 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         val prevUsableW = HeadUnitScreenConfig.getUsableWidth()
         val prevUsableH = HeadUnitScreenConfig.getUsableHeight()
 
-        if (HeadUnitScreenConfig.updateSurfaceDimensions(width, height)) {
+        val isPip = App.isPiPActive || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode)
+        if (!isPip && HeadUnitScreenConfig.updateSurfaceDimensions(width, height)) {
             AppLog.i("[UI_DEBUG_FIX] Surface mismatch! Expected: ${prevUsableW}x${prevUsableH}, Actual: ${width}x${height}")
 
             // Cache the real surface size for next session
@@ -1708,10 +1708,10 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                     videoX = (px / viewW) * (videoW - marginW)
                     videoY = (py / viewH) * (videoH - marginH)
                 } else {
-                    val uiW = videoW - marginW
-                    val uiH = videoH - marginH
-                    val uiRatio = uiW / uiH
-                    val viewRatio = viewW / viewH
+                    val uiW = (videoW - marginW).coerceAtLeast(1f)
+                    val uiH = (videoH - marginH).coerceAtLeast(1f)
+                    val uiRatio = (uiW / uiH).takeIf { it.isFinite() && it > 0f } ?: 1f
+                    val viewRatio = (viewW / viewH).takeIf { it.isFinite() && it > 0f } ?: 1f
 
                     var displayedUiW = viewW
                     var displayedUiH = viewH
@@ -1728,12 +1728,12 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                     val localX = px - uiLeft
                     val localY = py - uiTop
 
-                    videoX = (localX / displayedUiW) * uiW
-                    videoY = (localY / displayedUiH) * uiH
+                    videoX = if (displayedUiW > 0f) (localX / displayedUiW) * uiW else 0f
+                    videoY = if (displayedUiH > 0f) (localY / displayedUiH) * uiH else 0f
                 }
 
-                val correctedX = videoX.toInt().coerceIn(0, videoW)
-                val correctedY = videoY.toInt().coerceIn(0, videoH)
+                val correctedX = if (videoX.isFinite()) videoX.toInt().coerceIn(0, videoW) else 0
+                val correctedY = if (videoY.isFinite()) videoY.toInt().coerceIn(0, videoH) else 0
                 pointerData.add(Triple(pointerId, correctedX, correctedY))
             }
         }
@@ -1816,6 +1816,9 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         // Deregister only what still belongs to this instance, or the teardown of the old
         // instance strips the live one: its view callback stays armed to fire a stale
         // surface-destroy, and its listeners get nulled out from under it.
+        if (isFinishing) {
+            videoDecoder.setSurface(null)
+        }
         if (::projectionView.isInitialized) projectionView.removeCallback(this)
         if (videoDecoder.onFpsChanged === fpsListener) videoDecoder.onFpsChanged = null
         (if (::projectionView.isInitialized) projectionView as? SoftwareYuvFrameSink else null)?.let {

@@ -1,51 +1,626 @@
-<?xml version="1.0" ?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@color/da_background">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="32dp">
-        <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="64dp" app:title="@string/da_settings" app:titleTextColor="@color/da_text" app:navigationIcon="@drawable/ic_arrow_back_white" app:navigationIconTint="@color/da_text"/>
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/da_preferences" android:textSize="36sp" android:textColor="@color/da_text"/>
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="18dp" android:text="@string/da_preferences_hint" android:textSize="18sp" android:textColor="@color/da_muted"/>
-        <LinearLayout android:id="@+id/da_connection_setup" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="92dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="20dp" android:background="@drawable/da_card" android:foreground="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
-            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_network_wifi_white" app:tint="@color/da_accent" android:importantForAccessibility="no"/>
-            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/da_connection_setup" android:textSize="20sp" android:textColor="@color/da_text"/>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/da_connection_setup_hint" android:textSize="15sp" android:textColor="@color/da_muted"/>
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/da_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            app:title="@string/da_settings"
+            app:titleTextColor="@color/da_text"
+            app:navigationIcon="@drawable/ic_arrow_back_white"
+            app:navigationIconTint="@color/da_text" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/da_preferences"
+            android:textSize="30sp"
+            android:textColor="@color/da_text"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/da_preferences_hint"
+            android:textSize="15sp"
+            android:textColor="@color/da_muted" />
+
+        <!-- ============================================== -->
+        <!-- CATEGORY 1: DAILY DRIVING ESSENTIALS           -->
+        <!-- ============================================== -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="6dp"
+            android:text="@string/da_category_essentials"
+            android:textSize="12sp"
+            android:textColor="@color/da_accent"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- 1. Appearance & Theme -->
+        <LinearLayout
+            android:id="@+id/da_theme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_theme"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_theme_settings"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_theme_settings_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
             </LinearLayout>
-        </LinearLayout>
-        <LinearLayout android:id="@+id/da_diagnostics" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="92dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="20dp" android:background="@drawable/da_card" android:foreground="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
-            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_da_diagnostics" app:tint="@color/da_accent" android:importantForAccessibility="no"/>
-            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/da_diagnostics" android:textSize="20sp" android:textColor="@color/da_text"/>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/da_diagnostics_hint" android:textSize="15sp" android:textColor="@color/da_muted"/>
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout android:id="@+id/da_automation" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="92dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="20dp" android:background="@drawable/da_card" android:foreground="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
-            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_da_automation" app:tint="@color/da_accent" android:importantForAccessibility="no"/>
-            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/da_automation" android:textSize="20sp" android:textColor="@color/da_text"/>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/da_automation_hint" android:textSize="15sp" android:textColor="@color/da_muted"/>
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout android:id="@+id/da_display" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="92dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="20dp" android:background="@drawable/da_card" android:foreground="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
-            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_da_display" app:tint="@color/da_accent" android:importantForAccessibility="no"/>
-            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/da_display" android:textSize="20sp" android:textColor="@color/da_text"/>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/da_display_hint" android:textSize="15sp" android:textColor="@color/da_muted"/>
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout android:id="@+id/da_permissions" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="92dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="20dp" android:background="@drawable/da_card" android:foreground="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
-            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_da_permissions" app:tint="@color/da_accent" android:importantForAccessibility="no"/>
-            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/da_permissions" android:textSize="20sp" android:textColor="@color/da_text"/>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/da_permissions_hint" android:textSize="15sp" android:textColor="@color/da_muted"/>
-            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
         </LinearLayout>
 
-        <LinearLayout android:id="@+id/da_about" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="92dp" android:layout_marginTop="10dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="20dp" android:background="@drawable/da_card" android:foreground="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
-            <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@drawable/ic_da_about" app:tint="@color/da_accent" android:importantForAccessibility="no"/>
-            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/da_about" android:textSize="20sp" android:textColor="@color/da_text"/>
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/da_about_hint" android:textSize="15sp" android:textColor="@color/da_muted"/>
+        <!-- 2. Screen Size & DPI Scale (Direct live preview) -->
+        <LinearLayout
+            android:id="@+id/da_dpi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_scale"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_dpi_scale_title"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_dpi_scale_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
             </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
         </LinearLayout>
+
+        <!-- 3. Audio Routing Direct Toggle -->
+        <LinearLayout
+            android:id="@+id/da_audio_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_audio"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_audio_routing_title"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/audio_routing_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_audio_routing_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_bluetooth_music"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:focusable="false" />
+        </LinearLayout>
+
+        <!-- 4. Automatic Connection -->
+        <LinearLayout
+            android:id="@+id/da_automation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_automation"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_automation"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_automation_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- ============================================== -->
+        <!-- CATEGORY 2: CONNECTIVITY & PHONES              -->
+        <!-- ============================================== -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="6dp"
+            android:text="@string/da_category_connectivity"
+            android:textSize="12sp"
+            android:textColor="@color/da_accent"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- 5. Wireless Connection Setup -->
+        <LinearLayout
+            android:id="@+id/da_connection_setup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_network_wifi_white"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_connection_setup"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_connection_setup_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- 6. Hotspot Connection Mode -->
+        <LinearLayout
+            android:id="@+id/da_hotspot_connection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_wifi"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hotspot_connection_title"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/hotspot_connection_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- ============================================== -->
+        <!-- CATEGORY 3: VEHICLE & SYSTEM TUNING            -->
+        <!-- ============================================== -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="6dp"
+            android:text="@string/da_category_advanced"
+            android:textSize="12sp"
+            android:textColor="@color/da_accent"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- 7. Video & Advanced Display -->
+        <LinearLayout
+            android:id="@+id/da_display"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_display"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_display_advanced_title"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_display_advanced_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- 8. Permissions -->
+        <LinearLayout
+            android:id="@+id/da_permissions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_permissions"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_permissions"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_permissions_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- 9. Diagnostics -->
+        <LinearLayout
+            android:id="@+id/da_diagnostics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_diagnostics"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_diagnostics"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_diagnostics_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- 10. About DiAuto -->
+        <LinearLayout
+            android:id="@+id/da_about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_da_about"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/da_about"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/da_about_hint"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
     </LinearLayout>
 </ScrollView>

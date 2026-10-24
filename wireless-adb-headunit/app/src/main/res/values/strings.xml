@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Wireless ADB for Head Unit</string>
+    <string name="title_platform">AC8227L / Android Head Unit</string>
+    
+    <string name="status_active">Wireless ADB is ACTIVE</string>
+    <string name="status_inactive">Wireless ADB is INACTIVE</string>
+    <string name="status_checking">Checking ADB status…</string>
+    
+    <string name="btn_enable">ENABLE WIRELESS ADB</string>
+    <string name="btn_disable">DISABLE WIRELESS ADB</string>
+    <string name="btn_restart_daemon">Restart ADB Daemon</string>
+    <string name="btn_copy_command">Copy Command</string>
+    
+    <string name="ip_label">Head Unit IP:</string>
+    <string name="port_label">Port:</string>
+    <string name="default_port">5555</string>
+    
+    <string name="auto_boot_title">Auto-enable on Car Boot</string>
+    <string name="auto_boot_desc">Automatically re-enables wireless ADB whenever the car starts up</string>
+    
+    <string name="section_shortcuts">Head Unit Quick Tools</string>
+    <string name="btn_developer_options">Developer Options</string>
+    <string name="btn_mtk_engineer_mode">MTK Engineer Mode</string>
+    <string name="btn_android_settings">Android Settings</string>
+    <string name="btn_wifi_settings">Wi-Fi Settings</string>
+    <string name="btn_factory_codes">Factory Passcodes</string>
+    
+    <string name="section_diagnostics">Console &amp; Diagnostics</string>
+    <string name="btn_copy_logs">Copy Logs</string>
+    <string name="btn_clear_logs">Clear</string>
+    
+    <string name="toast_copied">Connect command copied to clipboard!</string>
+    <string name="toast_logs_copied">Diagnostics copied to clipboard!</string>
+</resources>

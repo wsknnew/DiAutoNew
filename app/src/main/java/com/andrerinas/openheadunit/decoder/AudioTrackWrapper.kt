@@ -506,7 +506,7 @@ class AudioTrackWrapper(
                 var lastPos = -1
                 var stagnantCount = 0
                 val startTime = System.currentTimeMillis()
-                while (System.currentTimeMillis() - startTime < 2500) {
+                while (System.currentTimeMillis() - startTime < 250) {
                     val pos = track.playbackHeadPosition
                     if (framesWritten > 0 && pos >= framesWritten) break
                     if (pos == lastPos && pos > 0) {
@@ -516,14 +516,20 @@ class AudioTrackWrapper(
                         lastPos = pos
                         stagnantCount = 0
                     }
-                    Thread.sleep(100)
+                    Thread.sleep(50)
                 }
             } catch (e: Exception) {
                 AppLog.e("Error during audio track cleanup", e)
             }
         }
 
-        // 4. Release the AudioTrack
+        // 4. Release the AudioTrack and Equalizer
+        try {
+            equalizer?.release()
+            equalizer = null
+        } catch (e: Exception) {
+            AppLog.w("Error releasing equalizer: ${e.message}")
+        }
         try {
             audioTrack?.release()
         } catch (e: Exception) {

@@ -16,8 +16,12 @@ import com.andrerinas.openheadunit.R
 import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.main.MainActivity
 import com.andrerinas.openheadunit.utils.AppLog
+import com.andrerinas.openheadunit.utils.HotspotConnectionHelper
 import com.andrerinas.openheadunit.utils.Settings
 import android.os.Build
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class WifiAutoStartReceiver : BroadcastReceiver() {
 
@@ -32,16 +36,36 @@ class WifiAutoStartReceiver : BroadcastReceiver() {
         }
 
         if (networkInfo != null && networkInfo.isConnected) {
-            checkAndStart(context)
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    checkAndStartInternal(context)
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 
     companion object {
         fun checkAndStart(context: Context) {
-            // Read settings from device-protected storage for maximum reliability
-            if (!Settings.isAutoStartOnWifiEnabled(context)) return
-            val targetSsid = Settings.getAutoStartWifiSsid(context).removeSurrounding("\"")
-            if (targetSsid.isEmpty()) return
+            CoroutineScope(Dispatchers.IO).launch {
+                checkAndStartInternal(context)
+            }
+        }
+
+        private suspend fun checkAndStartInternal(context: Context) {
+            // Don't trigger if already connected
+            if (App.provide(context).commManager.isConnected) {
+                AppLog.d("WifiAutoStartReceiver: Already connected to Android Auto. Ignoring event.")
+                return
+            }
+
+            val isWifiAutoStart = Settings.isAutoStartOnWifiEnabled(context)
+            val settings = App.provide(context).settings
+            val isHotspotAutoStart = settings.autoConnectOnHotspot || settings.useHotspotAsDefaultWireless
+
+            if (!isWifiAutoStart && !isHotspotAutoStart) return
 
             val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             val wifiInfo: WifiInfo? = wifiManager.connectionInfo
@@ -53,16 +77,26 @@ class WifiAutoStartReceiver : BroadcastReceiver() {
                 return
             }
 
-            AppLog.d("WifiAutoStartReceiver: Checking WiFi: $currentSsid (Target: $targetSsid)")
+            AppLog.d("WifiAutoStartReceiver: Checking WiFi: $currentSsid")
 
-            if (currentSsid.equals(targetSsid, ignoreCase = true)) {
-                AppLog.i("WifiAutoStartReceiver: MATCH! Starting AapService via WiFi Auto-start...")
-
-                // Don't trigger if already connected
-                if (App.provide(context).commManager.isConnected) {
-                    AppLog.d("WifiAutoStartReceiver: Already connected to Android Auto. Ignoring event.")
-                    return
+            var shouldStart = false
+            if (isWifiAutoStart) {
+                val targetSsid = Settings.getAutoStartWifiSsid(context).removeSurrounding("\"")
+                if (targetSsid.isNotEmpty() && currentSsid.equals(targetSsid, ignoreCase = true)) {
+                    shouldStart = true
                 }
+            }
+
+            if (!shouldStart && isHotspotAutoStart) {
+                val netStatus = HotspotConnectionHelper.getNetworkStatus(context)
+                if (netStatus.isWifiConnected && netStatus.gatewayIp != null) {
+                    AppLog.i("WifiAutoStartReceiver: Wi-Fi connected to phone hotspot (${netStatus.ssid ?: currentSsid}, gateway: ${netStatus.gatewayIp})")
+                    shouldStart = true
+                }
+            }
+
+            if (shouldStart) {
+                AppLog.i("WifiAutoStartReceiver: MATCH! Starting AapService via WiFi Auto-start...")
 
                 // Start the service
                 val serviceIntent = Intent(context, AapService::class.java)

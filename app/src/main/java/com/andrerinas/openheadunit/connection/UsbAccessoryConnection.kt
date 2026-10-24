@@ -28,10 +28,8 @@ class UsbAccessoryConnection(private val usbMgr: UsbManager, private val device:
     private var internalBufferAvailable = 0
 
     fun isDeviceRunning(device: UsbDevice): Boolean {
-        synchronized(sStateLock) {
-            val connected = usbDeviceConnected ?: return false
-            return UsbDeviceCompat.getUniqueName(device) == connected.uniqueName
-        }
+        val connected = usbDeviceConnected ?: return false
+        return UsbDeviceCompat.getUniqueName(device) == connected.uniqueName
     }
 
     override suspend fun connect() = withContext(Dispatchers.IO) {
@@ -158,10 +156,6 @@ class UsbAccessoryConnection(private val usbMgr: UsbManager, private val device:
     }
 
     override fun disconnect() {
-        // close() is thread-safe and immediately aborts any in-flight bulkTransfer(),
-        // so both sendBlocking and recvBlocking unblock within milliseconds.
-        usbDeviceConnection?.close()
-
         synchronized(sStateLock) {
             if (usbDeviceConnected != null) {
                 AppLog.i(usbDeviceConnected!!.toString())
@@ -169,16 +163,20 @@ class UsbAccessoryConnection(private val usbMgr: UsbManager, private val device:
             endpointIn = null
             endpointOut = null
 
-            if (usbDeviceConnection != null) {
-                var bret = false
-                if (usbInterface != null) {
-                    // releaseInterface() may fail since close() was already called; log and continue.
-                    bret = try { usbDeviceConnection!!.releaseInterface(usbInterface) } catch (_: Exception) { false }
+            val conn = usbDeviceConnection
+            val iface = usbInterface
+            if (conn != null) {
+                if (iface != null) {
+                    try {
+                        conn.releaseInterface(iface)
+                    } catch (e: Exception) {
+                        AppLog.w("UsbAccessoryConnection: releaseInterface failed: ${e.message}")
+                    }
                 }
-                if (bret) {
-                    AppLog.i("OK releaseInterface()")
-                } else {
-                    AppLog.e("Error releaseInterface()")
+                try {
+                    conn.close()
+                } catch (e: Exception) {
+                    AppLog.w("UsbAccessoryConnection: close failed: ${e.message}")
                 }
             }
             usbDeviceConnection = null

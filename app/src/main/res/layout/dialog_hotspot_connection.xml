@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/da_background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_wifi"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hotspot_connection_title"
+                    android:textColor="@color/da_text"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hotspot_connection_subtitle"
+                    android:textColor="@color/da_muted"
+                    android:textSize="13sp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_refresh_status"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_refresh_white"
+                app:tint="@color/da_accent"
+                android:contentDescription="@string/refresh" />
+
+            <ImageView
+                android:id="@+id/btn_close"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_close_white"
+                app:tint="@color/da_muted"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <!-- Network Info Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:orientation="vertical"
+            android:background="@drawable/da_card"
+            android:padding="18dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/connected_network_label"
+                    android:textColor="@color/da_muted"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.1" />
+
+                <TextView
+                    android:id="@+id/network_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_pill_translucent"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="@string/checking_network"
+                    android:textColor="@color/da_accent"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/network_ssid_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/checking_network"
+                android:textColor="@color/da_text"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/phone_ip_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/gateway_ip_none"
+                android:textColor="@color/da_accent"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/head_unit_ip_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/head_unit_ip_not_connected"
+                android:textColor="@color/da_muted"
+                android:textSize="13sp" />
+
+            <!-- Server Ready / Not Ready Indicator -->
+            <LinearLayout
+                android:id="@+id/server_status_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_pill_translucent"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp">
+
+                <TextView
+                    android:id="@+id/server_status_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/aa_server_ready"
+                    android:textColor="@color/da_text"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/btn_edit_ip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="@string/edit_phone_ip"
+                    android:textColor="@color/da_accent"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Primary Action Button: Connect via Hotspot -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_connect_hotspot"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="14dp"
+            android:text="@string/connect_to_phone_hotspot"
+            android:textSize="17sp"
+            android:textAllCaps="false"
+            android:gravity="center"
+            android:textColor="@color/da_background"
+            app:backgroundTint="@color/da_accent"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_android_auto"
+            app:iconTint="@color/da_background"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp" />
+
+        <!-- Secondary Action Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_scan_network"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:text="@string/scan_network_for_phone"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textColor="@color/da_text"
+                app:backgroundTint="@color/da_surface"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_search"
+                app:iconTint="@color/da_accent"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_open_wifi"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="@string/open_wifi_settings"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textColor="@color/da_text"
+                app:backgroundTint="@color/da_surface"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_wifi"
+                app:iconTint="@color/da_accent"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp" />
+        </LinearLayout>
+
+        <!-- Automation & Preferences Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:background="@drawable/da_card"
+            android:padding="18dp">
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_auto_connect_hotspot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auto_connect_on_hotspot"
+                android:textColor="@color/da_text"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auto_connect_on_hotspot_hint"
+                android:textColor="@color/da_muted"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/da_border"
+                android:layout_marginVertical="12dp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_default_hotspot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/use_hotspot_default"
+                android:textColor="@color/da_text"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/use_hotspot_default_hint"
+                android:textColor="@color/da_muted"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Instructions Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:background="@drawable/da_card"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/hotspot_instructions_title"
+                android:textColor="@color/da_accent"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/hotspot_step_1"
+                android:textColor="@color/da_text"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/hotspot_step_2"
+                android:textColor="@color/da_text"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/hotspot_step_3"
+                android:textColor="@color/da_text"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/hotspot_step_4"
+                android:textColor="@color/da_accent"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:lineSpacingExtra="2dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

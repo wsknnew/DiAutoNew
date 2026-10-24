@@ -36,6 +36,7 @@ class NightModeManager(
     private var isSensorRegistered = false
     private var isObserverRegistered = false
     private var isCarSignalObserverRegistered = false
+    private var isReceiverRegistered = false
     
     private val handler = Handler(Looper.getMainLooper())
 
@@ -81,12 +82,14 @@ class NightModeManager(
     }
 
     fun start() {
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_TIME_TICK)
-            addAction(LocationUpdateIntent.action)
+        if (!isReceiverRegistered) {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_TIME_TICK)
+                addAction(LocationUpdateIntent.action)
+            }
+            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+            isReceiverRegistered = true
         }
-        
-        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         
         // Initial setup of sensors/observers based on current settings
         refreshListeners()
@@ -98,7 +101,10 @@ class NightModeManager(
     }
 
     fun stop() {
-        try { context.unregisterReceiver(receiver) } catch (e: Exception) {}
+        if (isReceiverRegistered) {
+            try { context.unregisterReceiver(receiver) } catch (e: Exception) {}
+            isReceiverRegistered = false
+        }
         if (isSensorRegistered) {
             sensorManager.unregisterListener(this)
             isSensorRegistered = false

@@ -4,13 +4,25 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowBackground">@drawable/bg</item>
+        <item name="android:windowBackground">@color/da_background</item>
+        <item name="android:colorBackground">@color/da_background</item>
         <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:windowTranslucentStatus">false</item>
-        <item name="colorPrimary">@color/brand_teal</item>
-        <item name="colorSecondary">@color/brand_teal</item>
-        <item name="colorAccent">@color/brand_teal</item>
-        <item name="android:colorAccent">@color/brand_teal</item>
+        <item name="colorPrimary">@color/da_accent</item>
+        <item name="colorOnPrimary">@color/da_background</item>
+        <item name="colorSecondary">@color/da_accent</item>
+        <item name="colorOnSecondary">@color/da_background</item>
+        <item name="colorPrimaryContainer">@color/da_border</item>
+        <item name="colorOnPrimaryContainer">@color/da_text</item>
+        <item name="colorSurface">@color/da_surface</item>
+        <item name="colorSurfaceVariant">@color/da_surface</item>
+        <item name="colorOnSurface">@color/da_text</item>
+        <item name="colorOnSurfaceVariant">@color/da_muted</item>
+        <item name="colorOutline">@color/da_border</item>
+        <item name="colorAccent">@color/da_accent</item>
+        <item name="android:colorAccent">@color/da_accent</item>
+        <item name="android:textColorPrimary">@color/da_text</item>
+        <item name="android:textColorSecondary">@color/da_muted</item>
         <item name="android:dialogTheme">@style/DarkAlertDialog</item>
         <item name="android:alertDialogTheme">@style/DarkAlertDialog</item>
         <item name="materialAlertDialogTheme">@style/DarkAlertDialog</item>
@@ -24,8 +36,8 @@
 
     <style name="SplashTheme" parent="AppTheme">
         <item name="android:windowBackground">@drawable/splash_background</item>
-        <item name="android:statusBarColor">@color/color_projection_blue</item>
-        <item name="android:navigationBarColor">@color/color_projection_blue</item>
+        <item name="android:statusBarColor">@color/da_background</item>
+        <item name="android:navigationBarColor">@color/da_background</item>
     </style>
 
     <style name="SplashTheme.Fullscreen" parent="SplashTheme">

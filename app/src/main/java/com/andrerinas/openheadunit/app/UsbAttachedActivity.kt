@@ -156,12 +156,11 @@ class UsbAttachedActivity : Activity() {
         Thread {
             val result = usbMode.connectAndSwitch(device, useLibusb)
             runOnUiThread {
-                if (result) {
-                    ToastUtils.showToast(this, getString(R.string.success), Toast.LENGTH_SHORT)
-                } else {
-                    ToastUtils.showToast(this, getString(R.string.failed), Toast.LENGTH_SHORT)
+                if (!isFinishing && !isDestroyed) {
+                    val msg = if (result) getString(R.string.success) else getString(R.string.failed)
+                    ToastUtils.showToast(this, msg, Toast.LENGTH_SHORT)
+                    finish()
                 }
-                finish()
             }
         }.start()
     }

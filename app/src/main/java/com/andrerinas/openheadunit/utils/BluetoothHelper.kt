@@ -1,6 +1,8 @@
 package com.andrerinas.openheadunit.utils
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothClass
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
@@ -386,5 +388,102 @@ object BluetoothHelper {
         } catch (e: Exception) {
             return "Secondary ($serviceName)"
         }
+    }
+
+    /**
+     * Whether a specific BluetoothDevice is currently connected at ACL / profile level.
+     * Uses reflection on hidden API `isConnected()` supported on Android 4.4 through 14+.
+     * Falls back to `getConnectionState()` on API 31+.
+     */
+    fun isDeviceConnected(device: BluetoothDevice): Boolean {
+        try {
+            val isConnectedMethod = device.javaClass.getMethod("isConnected")
+            isConnectedMethod.isAccessible = true
+            val connected = isConnectedMethod.invoke(device) as? Boolean
+            if (connected == true) return true
+        } catch (_: Exception) {}
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val getStateMethod = device.javaClass.getMethod("getConnectionState")
+                getStateMethod.isAccessible = true
+                val state = getStateMethod.invoke(device) as? Int
+                if (state == BluetoothProfile.STATE_CONNECTED) return true
+            } catch (_: Exception) {}
+        }
+
+        return false
+    }
+
+    /**
+     * Finds the Bluetooth device currently connected to this Android head unit system.
+     * Iterates over all bonded devices across all available adapters (including Chinese OEM secondary chips).
+     */
+    fun getConnectedBluetoothDevice(context: Context): BluetoothDevice? {
+        val adapters = getAllBluetoothAdapters(context).ifEmpty {
+            listOfNotNull(getBluetoothAdapter(context))
+        }
+        for (adapter in adapters) {
+            if (!try { adapter.isEnabled } catch (_: Exception) { false }) continue
+            val bonded = try {
+                adapter.bondedDevices.orEmpty()
+            } catch (_: SecurityException) {
+                emptySet()
+            }
+            for (dev in bonded) {
+                if (isDeviceConnected(dev)) {
+                    return dev
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Finds the active or preferred Bluetooth device for Android Auto:
+     * 1. Actively connected device to the head unit system Bluetooth (top priority).
+     * 2. Device matching autoStartBluetoothDeviceMacs setting.
+     * 3. Bonded phone (BluetoothClass.Device.Major.PHONE).
+     * 4. First bonded device (skipping obvious non-phone accessories).
+     */
+    fun getActiveOrPreferredDevice(context: Context): BluetoothDevice? {
+        val adapter = getBluetoothAdapter(context) ?: return null
+        if (!try { adapter.isEnabled } catch (_: Exception) { false }) return null
+
+        val bonded = try {
+            adapter.bondedDevices.orEmpty()
+        } catch (_: SecurityException) {
+            return null
+        }
+        if (bonded.isEmpty()) return null
+
+        // 1. Actively connected Bluetooth device to car system Bluetooth
+        val connected = getConnectedBluetoothDevice(context)
+        if (connected != null) return connected
+
+        val settings = App.provide(context).settings
+        val savedMacs = settings.autoStartBluetoothDeviceMacs
+
+        // 2. Saved auto-start MACs
+        if (savedMacs.isNotEmpty()) {
+            val matched = bonded.firstOrNull { it.address in savedMacs }
+            if (matched != null) return matched
+        }
+
+        // 3. Filter bonded devices: prioritize PHONE class, skip peripherals/OBD
+        val nonAccessories = bonded.filter { dev ->
+            val name = try { dev.name.orEmpty() } catch (_: SecurityException) { "" }
+            val btClass = try { dev.bluetoothClass } catch (_: SecurityException) { null }
+            val isPeripheral = btClass?.majorDeviceClass == BluetoothClass.Device.Major.PERIPHERAL
+            val isObd = name.contains("OBD", ignoreCase = true) || name.contains("ELM327", ignoreCase = true)
+            !isPeripheral && !isObd
+        }
+
+        val phones = nonAccessories.filter { dev ->
+            try { dev.bluetoothClass?.majorDeviceClass == BluetoothClass.Device.Major.PHONE }
+            catch (_: SecurityException) { false }
+        }
+
+        return phones.firstOrNull() ?: nonAccessories.firstOrNull() ?: bonded.firstOrNull()
     }
 }

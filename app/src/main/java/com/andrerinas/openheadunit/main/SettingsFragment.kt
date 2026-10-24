@@ -74,7 +74,7 @@ class SettingsFragment : Fragment() {
     // Curated everyday options shown in the Basic tab. Advanced shows everything.
     // Wireless items here only appear in Basic when the user connects wirelessly (see filterSettings).
     private val basicSettingIds = setOf(
-        "staticBSSID", "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
+        "staticBSSID", "appLanguage", "darkModeSettings", "autoStartSettings", "autoConnectSettings", "resolution",
         "dpiPixelDensity", "viewMode", "fpsLimit", "musicViaBluetooth", "enableAudioSink", "micSettings", "audioVolumeOffsets",
         "keymap", "version", "about"
     )
@@ -878,91 +878,6 @@ class SettingsFragment : Fragment() {
         ))
 
         if (pendingWifiConnectionMode == 3) {
-            items.add(SettingItem.SegmentedButtonSettingEntry(
-                stableId = "nativeApTransport",
-                nameResId = R.string.native_ap_transport,
-                options = listOf(
-                    getString(R.string.native_ap_transport_wifi_direct),
-                    getString(R.string.native_ap_transport_hotspot)
-                ),
-                selectedIndex = (pendingNativeApTransport ?: 0).takeIf { it in 0..1 } ?: 0,
-                onOptionSelected = { index ->
-                    pendingNativeApTransport = index
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-
-            if ((pendingNativeApTransport ?: 0) == 1) {
-                items.add(SettingItem.InfoBanner(
-                    stableId = "nativeApTransportHint",
-                    textResId = R.string.native_ap_transport_hint
-                ))
-
-                // The automatic read goes through the same non-public API that a locked-down
-                // device refuses outright, so on those units this override is the only way the
-                // route can learn the network name at all.
-                val manualSsid = pendingHotspotSsid.orEmpty()
-                items.add(SettingItem.SettingEntry(
-                    stableId = "hotspotSsidOverride",
-                    nameResId = R.string.hotspot_ssid_override,
-                    value = manualSsid.ifEmpty { getString(R.string.auto) },
-                    onClick = { _ ->
-                        DialogUtils.showTextInputDialogWithMessage(
-                            requireContext(),
-                            R.string.hotspot_ssid_override,
-                            R.string.hotspot_ssid_override_message,
-                            manualSsid,
-                            { newVal ->
-                                pendingHotspotSsid = newVal.trim()
-                                checkChanges()
-                                updateSettingsList()
-                            }
-                        )
-                    }
-                ))
-
-                val manualPassword = pendingHotspotPassword.orEmpty()
-                items.add(SettingItem.SettingEntry(
-                    stableId = "hotspotPasswordOverride",
-                    nameResId = R.string.hotspot_password_override,
-                    value = if (manualPassword.isEmpty()) getString(R.string.auto) else "\u2022".repeat(manualPassword.length),
-                    onClick = { _ ->
-                        DialogUtils.showTextInputDialogWithMessage(
-                            requireContext(),
-                            R.string.hotspot_password_override,
-                            R.string.hotspot_password_override_message,
-                            manualPassword,
-                            { newVal ->
-                                pendingHotspotPassword = newVal.trim()
-                                checkChanges()
-                                updateSettingsList()
-                            }
-                        )
-                    }
-                ))
-
-                val manualInterface = pendingHotspotInterface.orEmpty()
-                items.add(SettingItem.SettingEntry(
-                    stableId = "hotspotInterfaceOverride",
-                    nameResId = R.string.hotspot_interface_override,
-                    value = manualInterface.ifEmpty { getString(R.string.auto) },
-                    onClick = { _ ->
-                        DialogUtils.showTextInputDialogWithMessage(
-                            requireContext(),
-                            R.string.hotspot_interface_override,
-                            R.string.hotspot_interface_override_message,
-                            manualInterface,
-                            { newVal ->
-                                pendingHotspotInterface = newVal.trim()
-                                checkChanges()
-                                updateSettingsList()
-                            }
-                        )
-                    }
-                ))
-            }
-
             val currentServiceName = pendingBluetoothManagerServiceName ?: "bluetooth_manager"
             items.add(SettingItem.SettingEntry(
                 stableId = "bluetoothAdapterServiceName",
@@ -1035,11 +950,6 @@ class SettingsFragment : Fragment() {
                     updateSettingsList()
                 }
             ))
-
-            // Mode 1 (Auto Server) can also use the auto-hotspot feature
-            if (pendingWifiConnectionMode == 1) {
-                addHotspotToggle(items)
-            }
         }
 
         // Sub-setting for Wireless Helper Strategy
@@ -1061,11 +971,6 @@ class SettingsFragment : Fragment() {
                         .show()
                 }
             ))
-
-            // Mode 2 only shows Hotspot toggle for Strategy 4 (Headunit Hotspot)
-            if (pendingHelperConnectionStrategy == 4) {
-                addHotspotToggle(items)
-            }
 
             if (pendingHelperConnectionStrategy == 1) { // WiFi Direct (P2P)
                 items.add(SettingItem.ToggleSettingEntry(
@@ -3197,24 +3102,6 @@ class SettingsFragment : Fragment() {
             .show()
     }
 
-    private fun showExperimentalWarning() {
-        MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
-            .setTitle(R.string.hotspot_warning_title)
-            .setMessage(R.string.hotspot_warning_message)
-            .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                pendingAutoEnableHotspot = true
-                checkChanges()
-                updateSettingsList()
-                dialog.dismiss()
-            }
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-                pendingAutoEnableHotspot = false
-                checkChanges()
-                updateSettingsList()
-            }
-            .show()
-    }
-
     private fun showCustomInsetsDialog() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_custom_insets, null)
 
@@ -3570,27 +3457,6 @@ class SettingsFragment : Fragment() {
                 updateSettingsList()
             }
             .show()
-    }
-    private fun addHotspotToggle(items: MutableList<SettingItem>) {
-        items.add(SettingItem.ToggleSettingEntry(
-            stableId = "autoEnableHotspot",
-            nameResId = R.string.auto_enable_hotspot,
-            descriptionResId = R.string.auto_enable_hotspot_description,
-            isChecked = pendingAutoEnableHotspot ?: false,
-            onCheckedChanged = { isChecked ->
-                if (isChecked) {
-                    if (!AppPermissions.isWriteSettingsGranted(requireContext())) {
-                        showPermissionDialog()
-                    } else {
-                        showExperimentalWarning()
-                    }
-                } else {
-                    pendingAutoEnableHotspot = false
-                    checkChanges()
-                    updateSettingsList()
-                }
-            }
-        ))
     }
 
 

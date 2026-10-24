@@ -89,6 +89,17 @@ class SUExecutor {
         return exitCode == 0
     }
 
+    fun runShell(cmd: String): Int {
+        testRegistered()
+
+        if (active == null) {
+            Log.w("SUExecutor", "#runShell failed: Not active")
+            return -1
+        }
+
+        return active?.runShell(cmd) ?: -1
+    }
+
     private fun testRegistered() {
         if (!registered)
             throw IllegalStateException("SUExecutor not registered")

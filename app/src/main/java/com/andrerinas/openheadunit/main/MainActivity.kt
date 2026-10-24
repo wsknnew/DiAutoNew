@@ -144,6 +144,7 @@ class MainActivity : BaseActivity() {
         } else if (mainSettings.useGradientBackground) {
             theme.applyStyle(R.style.ThemeOverlay_GradientBackground, true)
         }
+        theme.applyStyle(R.style.ThemeOverlay_DiAutoSettings, true)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
@@ -298,7 +299,7 @@ class MainActivity : BaseActivity() {
      * pending. Invoked by pill tap, overlay cancel button, and back-press when
      * the overlay is up.
      */
-    private fun cancelAutoConnect() {
+    fun cancelAutoConnect() {
         if (!autoConnectInProgress) return
         AppLog.i("Auto-connect: cancelled by user")
         // disconnect() handles all states including the Connecting state where

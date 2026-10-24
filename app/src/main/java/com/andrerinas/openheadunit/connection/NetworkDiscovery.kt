@@ -2,7 +2,9 @@ package com.andrerinas.openheadunit.connection
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.wifi.WifiManager
 import android.os.Build
+import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.utils.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -16,6 +18,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlin.coroutines.coroutineContext
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -173,8 +177,18 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
     private suspend fun scanGateways(): Boolean {
         var foundAny = false
         try {
-            val suspects = mutableSetOf<String>()
+            // Use LinkedHashSet to preserve priority order: Custom IP -> Default Route GW -> DHCP GW -> Heuristics (.1) -> Emulator
+            val suspects = LinkedHashSet<String>()
 
+            // 0. User-configured custom phone IP from Settings
+            try {
+                val customIp = App.provide(context).settings.customHotspotPhoneIp
+                if (customIp.isNotBlank()) {
+                    suspects.add(customIp.trim())
+                }
+            } catch (_: Exception) {}
+
+            // 1. Android ConnectivityManager default route gateway
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
                 val activeNet = cm.activeNetwork
@@ -187,10 +201,23 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
                     }
                 }
             }
-            // Always try heuristics (X.X.X.1) for all interfaces
+
+            // 2. WifiManager DHCP gateway (handles automotive ROMs where ConnectivityManager routes are missing/broken)
+            try {
+                val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                @Suppress("DEPRECATION")
+                val dhcp = wm?.dhcpInfo
+                if (dhcp != null && dhcp.gateway != 0) {
+                    val gw = dhcp.gateway
+                    val dhcpGwIp = "${gw and 0xFF}.${(gw shr 8) and 0xFF}.${(gw shr 16) and 0xFF}.${(gw shr 24) and 0xFF}"
+                    suspects.add(dhcpGwIp)
+                }
+            } catch (_: Exception) {}
+
+            // 3. Always try heuristics (X.X.X.1) for all interfaces
             collectInterfaceSuspects(suspects)
 
-            // Special case for emulators: 10.0.2.2 is the host machine
+            // 4. Special case for emulators: 10.0.2.2 is the host machine
             if (isEmulator()) {
                 suspects.add("10.0.2.2")
             }
@@ -224,6 +251,9 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
         val myIp = getLocalIpAddress()
         AppLog.i("NetworkDiscovery: Scanning subnet: $subnet.*")
 
+        // Cap concurrent socket connections to 20 to prevent EMFILE socket/file descriptor exhaustion,
+        // kernel buffer depletion, and local network / hotspot ARP packet flooding.
+        val concurrencyLimit = Semaphore(20)
         val tasks = mutableListOf<Deferred<Boolean>>()
 
         // Scan range 1..254
@@ -235,7 +265,10 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
             // reach these. Detached, they outlived the scan that started them and kept
             // probing a subnet the device had already left.
             tasks.add(async(Dispatchers.IO) {
-                checkAndReport(ip)
+                concurrencyLimit.withPermit {
+                    coroutineContext.ensureActive()
+                    checkAndReport(ip)
+                }
             })
         }
 
@@ -367,7 +400,9 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
                         ipBytes[3] = 1
                         val suspectIp = InetAddress.getByAddress(ipBytes).hostAddress
                         // Only add if it's not our own IP (though checking own IP is fast anyway)
-                        suspects.add(suspectIp)
+                        if (suspectIp != null) {
+                            suspects.add(suspectIp)
+                        }
                     }
                 }
             }
@@ -377,22 +412,54 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
     }
 
     private fun getSubnet(): String? {
-        // Reuse similar logic to collectInterfaceSuspects but return subnet string
-        try {
-             val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
-             for (networkInterface in interfaces) {
-                 if (!networkInterface.isUp || networkInterface.isLoopback) continue
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                val activeNet = cm?.activeNetwork
+                if (activeNet != null) {
+                    val lp = cm.getLinkProperties(activeNet)
+                    lp?.linkAddresses?.forEach { linkAddr ->
+                        val addr = linkAddr.address
+                        if (addr is Inet4Address && !addr.isLoopbackAddress) {
+                            val host = addr.hostAddress ?: ""
+                            val lastDot = host.lastIndexOf('.')
+                            if (lastDot > 0) return host.substring(0, lastDot)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
 
-                 for (addr in Collections.list(networkInterface.inetAddresses)) {
-                     if (addr is Inet4Address) {
-                         val host = addr.hostAddress
-                         val lastDot = host.lastIndexOf('.')
-                         if (lastDot > 0) {
-                             return host.substring(0, lastDot)
-                         }
-                     }
-                 }
-             }
+        try {
+            val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
+            // Prioritize physical Wi-Fi (wlan) and Ethernet (eth) interfaces over virtual/p2p
+            val sortedInterfaces = interfaces.sortedWith(compareByDescending { iface ->
+                val name = iface.name.lowercase()
+                when {
+                    name.startsWith("wlan") -> 3
+                    name.startsWith("eth") -> 2
+                    name.startsWith("ap") -> 1
+                    name.startsWith("p2p") -> -1
+                    name.startsWith("dummy") || name.startsWith("tun") -> -2
+                    else -> 0
+                }
+            })
+
+            for (networkInterface in sortedInterfaces) {
+                if (!networkInterface.isUp || networkInterface.isLoopback) continue
+                val name = networkInterface.name.lowercase()
+                if (name.startsWith("dummy") || name.startsWith("tun") || name.startsWith("p2p")) continue
+
+                for (addr in Collections.list(networkInterface.inetAddresses)) {
+                    if (addr is Inet4Address && !addr.isLoopbackAddress) {
+                        val host = addr.hostAddress ?: ""
+                        val lastDot = host.lastIndexOf('.')
+                        if (lastDot > 0) {
+                            return host.substring(0, lastDot)
+                        }
+                    }
+                }
+            }
         } catch (e: Exception) {
             AppLog.e("NetworkDiscovery: Failed to get subnet", e)
         }

@@ -69,6 +69,7 @@ import android.provider.Settings as AndroidSettings
 import android.view.View
 import android.view.WindowManager
 import android.media.AudioManager
+import com.andrerinas.openheadunit.utils.HotspotConnectionHelper
 import com.andrerinas.openheadunit.utils.HotspotManager
 import com.andrerinas.openheadunit.utils.VpnControl
 import com.andrerinas.openheadunit.connection.CarKeyReceiver
@@ -120,9 +121,10 @@ class AapService : Service(), UsbReceiver.Listener {
     @Volatile private var wirelessServer: WirelessServer? = null
     // Rebuild bookkeeping for WirelessServerRestartPolicy. The handshake asks about every 4s while a
     // phone keeps arriving, so without a bound a port that cannot bind becomes a rebuild loop.
-    private var lastWirelessRebuildAtMs = 0L
-    private var wirelessRebuildsInWindow = 0
-    private var wirelessRebuildWindowStartedAtMs = 0L
+    @Volatile private var lastWirelessRebuildAtMs = 0L
+    @Volatile private var wirelessRebuildsInWindow = 0
+    @Volatile private var wirelessRebuildWindowStartedAtMs = 0L
+    private var p2pReinitJob: Job? = null
     private var networkDiscovery: NetworkDiscovery? = null
     private var mediaSession: MediaSessionCompat? = null
 
@@ -642,6 +644,16 @@ class AapService : Service(), UsbReceiver.Listener {
             AppLog.i("WakeDetect: checking USB devices (trigger=$trigger)")
             checkAlreadyConnectedUsb(force = true)
         }
+
+        // Ignition resume watchdog for Native AA (Wi-Fi Direct)
+        if (settings.wifiConnectionMode == 3 &&
+            nativeAaHandshakeManager?.isActive() != true &&
+            nativeAaHandshakeManager?.isAttemptInFlight() != true) {
+            AppLog.i("WakeDetect: re-arming Native AA wireless transport on hibernate wake ($trigger)")
+            userExitedAA = false
+            userExitCooldownUntil = 0L
+            initWifiMode(force = false)
+        }
     }
 
     /**
@@ -711,6 +723,16 @@ class AapService : Service(), UsbReceiver.Listener {
         if (settings.autoStartOnUsb) {
             AppLog.i("WakeDetect: checking USB devices on screen on")
             checkAlreadyConnectedUsb(force = true)
+        }
+
+        // Ignition resume watchdog for Native AA (Wi-Fi Direct)
+        if (settings.wifiConnectionMode == 3 &&
+            nativeAaHandshakeManager?.isActive() != true &&
+            nativeAaHandshakeManager?.isAttemptInFlight() != true) {
+            AppLog.i("WakeDetect: re-arming Native AA wireless transport on screen on")
+            userExitedAA = false
+            userExitCooldownUntil = 0L
+            initWifiMode(force = false)
         }
     }
 
@@ -1005,10 +1027,15 @@ class AapService : Service(), UsbReceiver.Listener {
      * that [VideoDecoder.setSurface] is always called before the first video frame arrives.
      */
     private fun onConnected() {
+        hasEverConnected = true
+        releaseBootWakeLock()
+        commManager.cancelPendingKill()
         com.andrerinas.openheadunit.hud.BydNavigationOutputs.start(this)
         isSwitchingToAccessory.set(false)
         updateNotification()
-        acquireWifiLock()
+        if (commManager.isWirelessSession) {
+            acquireWifiLock()
+        }
 
         // Silent audio hack removed to prevent mixing/resampling stuttering issues
 
@@ -1167,6 +1194,7 @@ class AapService : Service(), UsbReceiver.Listener {
      * 4. Scheduling a reconnect attempt if applicable (see [scheduleReconnectIfNeeded])
      */
     private fun onDisconnected(state: CommManager.ConnectionState.Disconnected) {
+        hasEverConnected = false
         com.andrerinas.openheadunit.hud.BydNavigationOutputs.stop()
         isSwitchingToAccessory.set(false)
         releaseWifiLock()
@@ -1212,7 +1240,8 @@ class AapService : Service(), UsbReceiver.Listener {
                     // Unexpected disconnect — reset and re-initialize for auto-reconnect.
                     AppLog.i("AapService: Native AA Mode disconnected. Resetting manager and group in 1.5s...")
                     nativeAaHandshakeManager?.stop()
-                    serviceScope.launch {
+                    p2pReinitJob?.cancel()
+                    p2pReinitJob = serviceScope.launch {
                         delay(1500) // Give hardware time to settle before re-initializing P2P
                         initWifiMode(force = true)
                     }
@@ -1937,6 +1966,8 @@ class AapService : Service(), UsbReceiver.Listener {
             ACTION_START_WIRELESS        -> {
                 // Asked for from the UI, so the user is present: release the boot-loop pause
                 // rather than silently ignoring them.
+                userExitedAA = false
+                userExitCooldownUntil = 0L
                 Settings.clearBootLoopState(this)
                 initWifiMode()
             }
@@ -2017,13 +2048,38 @@ class AapService : Service(), UsbReceiver.Listener {
                     commManager.connectionState.value is CommManager.ConnectionState.Connecting
                 val nativeAllowed = WirelessScopePolicy.effectiveMode(
                     settings.wifiConnectionMode, settings.connectionModes) == 3
-                if (nativeAllowed && !sessionUp &&
-                    nativeAaHandshakeManager?.isActive() != true &&
-                    nativeAaHandshakeManager?.isAttemptInFlight() != true) {
-                    AppLog.i("AapService: Bluetooth auto-start — Native AA handshake manager was stopped, re-arming.")
+                if (nativeAllowed && !sessionUp) {
                     userExitedAA = false
                     userExitCooldownUntil = 0L
-                    initWifiMode(force = true)
+                    if (nativeAaHandshakeManager?.isActive() != true &&
+                        nativeAaHandshakeManager?.isAttemptInFlight() != true) {
+                        AppLog.i("AapService: Bluetooth auto-start — Native AA handshake manager was stopped, re-arming.")
+                        initWifiMode(force = true)
+                    } else if (nativeAaHandshakeManager?.isAttemptInFlight() != true) {
+                        AppLog.i("AapService: Bluetooth auto-start — transport armed, triggering wake poke.")
+                        nativeAaHandshakeManager?.triggerPoke()
+                    }
+                } else if (settings.useHotspotAsDefaultWireless && !sessionUp) {
+                    userExitedAA = false
+                    userExitCooldownUntil = 0L
+                    AppLog.i("AapService: Bluetooth auto-start — Phone Hotspot default mode. Monitoring for hotspot connectivity...")
+                    serviceScope.launch(Dispatchers.IO) {
+                        for (retry in 0..4) {
+                            if (commManager.isConnected) break
+                            val status = HotspotConnectionHelper.getNetworkStatus(this@AapService)
+                            val targetIp = status.gatewayIp
+                            if (status.isWifiConnected && targetIp != null) {
+                                AppLog.i("AapService: Found phone hotspot at $targetIp, initiating TCP connect...")
+                                withContext(Dispatchers.Main) {
+                                    if (!commManager.isConnected) {
+                                        commManager.connectAsync(targetIp, HotspotConnectionHelper.AAP_TCP_PORT)
+                                    }
+                                }
+                                break
+                            }
+                            delay(1500)
+                        }
+                    }
                 }
             }
             ACTION_NEARBY_CONNECT         -> {
@@ -3284,8 +3340,8 @@ class AapService : Service(), UsbReceiver.Listener {
                         val clientSocket = serverSocket?.accept() ?: break
                         AppLog.i("WirelessServer: Incoming connection detected from ${clientSocket.inetAddress}")
                         serviceScope.launch {
-                            if (commManager.isConnected) {
-                                AppLog.w("WirelessServer: Already connected, dropping client from ${clientSocket.inetAddress}")
+                            if (commManager.isBusy) {
+                                AppLog.w("WirelessServer: CommManager is busy, dropping client from ${clientSocket.inetAddress}")
                                 withContext(Dispatchers.IO) {
                                     try { clientSocket.close() } catch (e: Exception) {}
                                 }
@@ -3298,6 +3354,7 @@ class AapService : Service(), UsbReceiver.Listener {
                             } else {
                                 AppLog.i("WirelessServer: Accepted client connection from ${clientSocket.inetAddress}. Passing to CommManager...")
                                 userExitedAA = false // Clear flag on genuine new connection
+                                userExitCooldownUntil = 0L
                                 commManager.connect(clientSocket)
                             }
                         }
@@ -3350,7 +3407,13 @@ class AapService : Service(), UsbReceiver.Listener {
         }
 
         private fun unregisterNsd() {
-            registrationListener?.let { nsdManager?.unregisterService(it) }
+            registrationListener?.let {
+                try {
+                    nsdManager?.unregisterService(it)
+                } catch (e: Exception) {
+                    AppLog.w("WirelessServer: NSD unregister failed: ${e.message}")
+                }
+            }
             registrationListener = null
         }
 
@@ -3393,7 +3456,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
         private const val BOOT_START_NOTIFICATION_ID = 42
         private const val BOOT_LOOP_NOTIFICATION_ID = 43
-        private const val PROJECTION_LAUNCH_NOTIFICATION_ID = 43
+        private const val PROJECTION_LAUNCH_NOTIFICATION_ID = 44
 
         // Service action strings used with startService() and sendBroadcast()
         const val ACTION_START_SELF_MODE           = "com.andrerinas.openheadunit.ACTION_START_SELF_MODE"

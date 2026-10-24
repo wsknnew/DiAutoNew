@@ -1582,8 +1582,8 @@ class VideoDecoder(
      */
     private fun feedInputBuffer(buffer: ByteBuffer, arrivalNanos: Long): FeedResult {
         val currentCodec = codec ?: return FeedResult.NO_INPUT_BUFFER
+        var inputIndex = -1
         try {
-            var inputIndex = -1
             // ~300ms of patience. Anything much shorter gives up while the codec is merely busy:
             // at 30ms this reported a full input queue within a second of every decoder start,
             // before the component had drained its first buffers, on hardware that then went on to
@@ -1676,6 +1676,7 @@ class VideoDecoder(
             val pts = ((if (arrivalNanos > 0L) arrivalNanos else System.nanoTime()) - startTime) / 1000
 
             currentCodec.queueInputBuffer(inputIndex, 0, inputBuffer.limit(), pts, flags)
+            inputIndex = -1
             if (isKeyframe) {
                 // Fed, not yet repaired. The picture counts as repaired at the output side, where
                 // a keyframe that arrived holed is told apart from one that decodes.
@@ -1685,6 +1686,9 @@ class VideoDecoder(
             return FeedResult.FED
         } catch (e: Exception) {
             AppLog.e("Error feeding input buffer", e)
+            if (inputIndex >= 0) {
+                try { currentCodec.queueInputBuffer(inputIndex, 0, 0, 0, 0) } catch (_: Exception) {}
+            }
             return FeedResult.NO_INPUT_BUFFER
         }
     }
@@ -1769,6 +1773,7 @@ class VideoDecoder(
     /**
      * Dedicated thread to pull decoded frames and render them to the surface.
      */
+    @Suppress("UNUSED_VALUE")
     private fun outputThreadLoop() {
         AppLog.i("Output thread started")
         val pacer = if (Build.VERSION.SDK_INT >= 21 && settings.viewMode == Settings.ViewMode.SURFACE)
@@ -1799,27 +1804,14 @@ class VideoDecoder(
                 continue
             }
 
+            var readyCount = 0
+            var unreleasedStart = 0
             try {
                 val outputIndex = currentCodec.dequeueOutputBuffer(bufferInfo, 10000L)
                 if (outputIndex >= 0) {
-                    // Catch up to the newest ready frame instead of replaying the backlog. A link
-                    // that goes quiet for a few hundred milliseconds delivers what it owed in one
-                    // burst; showing every frame of it walks the picture forward in slow motion and
-                    // never closes the gap against audio, which does not queue the same way. These
-                    // frames are already decoded, so discarding them costs no reference data and
-                    // cannot corrupt what follows: the one place load can be shed for free.
-                    //
-                    // "Another buffer is ready" on its own does NOT mean we are behind.
-                    // releaseOutputBuffer(true) hands the frame to the surface and returns without
-                    // waiting for vsync, so back-pressure lands a step later, on the codec asking
-                    // for a graphic buffer. One decoded frame sitting ahead of the display is
-                    // ordinary pipeline depth, and treating that as a backlog would discard half
-                    // the frames of a perfectly healthy 60fps stream. So nothing is discarded
-                    // until a third frame is ready: at depth two both are scheduled on distinct refresh intervals
-                    // on SurfaceView, and only a genuine burst - the one
-                    // that arrives after silence, dozens deep - reaches the discard path.
                     readyIndices[0] = outputIndex
-                    var readyCount = 1
+                    readyCount = 1
+                    unreleasedStart = 0
                     var passes = 0
                     while (readyCount <= MAX_CATCHUP_SKIPS && passes < MAX_CATCHUP_SKIPS * 2) {
                         passes++
@@ -1838,10 +1830,12 @@ class VideoDecoder(
                         readyCount - if (pacer != null) 2 else 1 else 0
                     for (i in 0 until firstToRender) {
                         currentCodec.releaseOutputBuffer(readyIndices[i], false)
+                        unreleasedStart = i + 1
                     }
                     framesSkippedAtRender += firstToRender
                     for (i in firstToRender until readyCount - 1) {
                         if (releaseFrame(currentCodec, readyIndices[i])) alsoRendered++
+                        unreleasedStart = i + 1
                     }
                     // These went to the surface too, so they belong in the rendered rate; counting
                     // only the last one would understate it by half whenever the pipeline sits one
@@ -1851,7 +1845,9 @@ class VideoDecoder(
                     framesRenderedThisSession += alsoRendered
                     val renderIndex = readyIndices[readyCount - 1]
 
-                    if (!releaseFrame(currentCodec, renderIndex)) continue
+                    val renderedOk = releaseFrame(currentCodec, renderIndex)
+                    unreleasedStart = readyCount
+                    if (!renderedOk) continue
                     lastFrameRenderedMs = SystemClock.elapsedRealtime()
                     renderedThisSession = true
                     lastOutputMs = lastFrameRenderedMs
@@ -1978,6 +1974,11 @@ class VideoDecoder(
                     }
                 }
             } catch (e: Exception) {
+                if (unreleasedStart < readyCount) {
+                    for (i in unreleasedStart until readyCount) {
+                        try { currentCodec.releaseOutputBuffer(readyIndices[i], false) } catch (_: Exception) {}
+                    }
+                }
                 if (running) {
                     consecutiveErrors++
                     AppLog.w("Codec exception in output thread (attempt $consecutiveErrors): ${e.message}")

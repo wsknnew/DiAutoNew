@@ -1,15 +1,15 @@
 package com.andrerinas.openheadunit.decoder
 
-import android.util.SparseArray
 import com.andrerinas.openheadunit.utils.AppLog
+import java.util.concurrent.ConcurrentHashMap
 
 class AudioDecoder {
 
-    private val audioTracks = SparseArray<AudioTrackWrapper>(3)
+    private val audioTracks = ConcurrentHashMap<Int, AudioTrackWrapper>()
     private var mixer: AudioMixer? = null
 
     fun getTrack(channel: Int): AudioTrackWrapper? {
-        return audioTracks.get(channel)
+        return audioTracks[channel]
     }
 
     fun getMixer(): AudioMixer? {
@@ -21,21 +21,20 @@ class AudioDecoder {
     }
 
     fun decode(channel: Int, buffer: ByteArray, offset: Int, size: Int) {
-        val audioTrack = audioTracks.get(channel)
-        audioTrack?.write(buffer, offset, size)
+        audioTracks[channel]?.write(buffer, offset, size)
     }
 
     fun stop() {
-        for (i in 0 until audioTracks.size()) {
-            stop(audioTracks.keyAt(i))
+        val keys = audioTracks.keys().toList()
+        for (key in keys) {
+            stop(key)
         }
         releaseMixer()
     }
 
     fun stop(chan: Int) {
-        val audioTrack = audioTracks.get(chan)
+        val audioTrack = audioTracks.remove(chan)
         audioTrack?.stopPlayback()
-        audioTracks.put(chan, null)
     }
 
     fun releaseMixer() {
@@ -68,11 +67,11 @@ class AudioDecoder {
             channelId = channel,
             attachHwDspEqualizer = attachHwDspEqualizer
         )
-        audioTracks.put(channel, thread)
+        audioTracks[channel] = thread
     }
 
     fun setGain(channel: Int, gain: Float) {
-        audioTracks.get(channel)?.setGain(gain)
+        audioTracks[channel]?.setGain(gain)
     }
 
     companion object {

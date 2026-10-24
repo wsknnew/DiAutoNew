@@ -501,11 +501,11 @@ class AapTransport(
     }
 
     internal fun quit(clean: Boolean = false) {
-        val cb = onQuit ?: return
+        val cb = onQuit
         onQuit = null
 
         AppLog.i("AapTransport quitting (clean=$clean)")
-        cb.invoke(clean)
+        cb?.invoke(clean)
         micRecorder.stop()
         micRecorder.listener = null
         sendHandler?.removeCallbacks(focusCycleGainRunnable)

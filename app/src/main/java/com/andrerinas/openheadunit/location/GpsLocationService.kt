@@ -15,7 +15,7 @@ class GpsLocationService : Service() {
 
         gpsLocation?.start()
 
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
