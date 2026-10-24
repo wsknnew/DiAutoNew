@@ -50,7 +50,8 @@ class AboutFragment : Fragment() {
         sb.append("<b>Special thanks to Mike Reidis for the original idea and android auto protocol and code.</b><br/>")
         sb.append("<a href=\"https://github.com/mikereidis/headunit\">https://github.com/mikereidis/headunit</a><br/><br/>")
         sb.append("<a href=\"https://github.com/wsknnew/DiAutoNew\">DiAuto source and releases</a><br/>")
-        sb.append("An independent Android Auto receiver for BYD DiLink. Based on ")
+        sb.append("An independent Android Auto receiver for Android Car Head Units. Forked from ")
+        sb.append("<a href=\"https://github.com/shihabal3amri/DiAuto\">DiAuto by Shihab Al-Amri</a> and ")
         sb.append("<a href=\"https://github.com/andreknieriem/open-headunit\">Open Headunit</a>. ")
         sb.append("Thanks to its authors and contributors. Not affiliated with Google or BYD.<br/><br/>")
 
