@@ -108,9 +108,9 @@
     <string name="refresh" translatable="false">Refresh</string>
 
     <!-- Release & Custom Edition Info -->
-    <string name="about_release_badge" translatable="false">Release v0.3.12</string>
-    <string name="about_modified_info" translatable="false">Modified by User • Custom Edition</string>
-    <string name="about_release_date" translatable="false">Release Date: October 22, 2026</string>
+    <string name="about_release_badge" translatable="false">Release v1.0</string>
+    <string name="about_modified_info" translatable="false">Custom Release Edition</string>
+    <string name="about_release_date" translatable="false">Release Date: October 24, 2026</string>
 
     <!-- UI/UX Enhancements -->
     <string name="theme_dark_enabled" translatable="false">Dark Theme enabled</string>
