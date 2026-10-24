@@ -1,12 +1,54 @@
-# DiAuto
+# DiAuto (Custom Edition)
 
-**Android Auto on your BYD display. Wireless or USB.**
+**Android Auto on your BYD & Android head unit display. Wireless or USB.**
+
+> [!NOTE]
+> **Fork & Project Attribution:**
+> This repository is an independent custom fork of [**DiAuto by Shihab Al-Amri**](https://github.com/shihabal3amri/DiAuto).
+> - **Original Upstream:** [shihabal3amri/DiAuto](https://github.com/shihabal3amri/DiAuto) (Specialized BYD DiLink Android Auto Receiver)
+> - **Upstream Foundation:** [andreknieriem/open-headunit](https://github.com/andreknieriem/open-headunit) by Andre Knieriem and contributors
+> - **Original Protocol & Concept:** [mikereidis/headunit](https://github.com/mikereidis/headunit) by Michael Reid
+>
+> All original upstream copyrights, licenses (AGPL-3.0), and documentation remain intact.
+
+---
+
+## 🚀 Enhancements in this Fork (`wsknnew/DiAutoNew`)
+
+This fork introduces deep automotive reliability hardening, UI/UX modernizations, and standalone over-the-air management:
+
+### 1. In-App GitHub OTA Updater
+- **1-Tap In-Car Updates:** Built-in OTA updater checks [wsknnew/DiAutoNew Releases](https://github.com/wsknnew/DiAutoNew/releases/latest) directly on the car display with a visual download progress bar.
+- **Hands-Free Silent Install:** Automatically uses `pm install -r` if root or Shizuku is present; gracefully falls back to Android's `PackageInstaller` via `FileProvider`.
+- **Automated CI/CD:** GitHub Actions release workflow (`.github/workflows/release.yml`) builds and publishes APKs upon tag push (`v*`).
+
+### 2. Automotive Cockpit UI & Dark Theme
+- **High-Contrast Dark Theme:** Tuned for high-glare daytime and OLED/LCD nighttime driving (`da_background`, `da_surface`, `da_accent`).
+- **Cockpit Home Screen:** Redesigned connection cards, instant audio routing status, and quick mode toggles.
+- **Display & DPI Tuning:** Live DPI scale preview with quick presets (120, 140, 160, 180, 200 DPI) for widescreen and portrait rotating screens.
+
+### 3. Smart Wireless & Phone Hotspot Mode
+- **Phone Hotspot Mode:** Connects to Android Auto when the head unit joins your phone's personal Wi-Fi hotspot.
+- **Instant Gateway Scan (<300ms):** Direct DHCP gateway and custom phone IP prioritization, bypassing slow 254-IP subnet scans.
+- **In-App Bluetooth Device Selector:** Grouped list (Paired vs Nearby Unpaired) with direct in-app pairing and PIN dialog—no need to exit to system car settings.
+
+### 4. Hardware & MediaCodec Hardening (25+ Stability Fixes)
+- **MediaCodec Buffer Slot Protection:** Guaranteed return of dequeued input and output buffers during network jitter, eliminating hardware decoder starvation (`NO_INPUT_BUFFER`).
+- **AudioFlinger Effect Leak Prevention:** Cleanly retains and releases native `Equalizer` effect instances on session teardown, avoiding Android OS effect slot exhaustion (~32 max).
+- **Engine Starter Crank Immunity:** Cancellable teardown delays prevent transient 12V voltage drops from killing recovering sessions.
+- **Main-Thread ANR Elimination:** Removed synchronous network operations and sleeps from Android's Main thread during service destruction.
+- **PiP Display Guard:** Prevents Picture-in-Picture window downscaling from overwriting native 1080p/720p display preferences.
+- **Touch Coordinate NaN Guard:** Division-by-zero and non-finite coordinate protection during dynamic surface resizing.
+
+### 5. Companion Tool: Wireless ADB for AC8227L
+- Includes [`wireless-adb-headunit/`](wireless-adb-headunit/README.md), an automotive companion utility ensuring persistent Wireless ADB across car reboots on MediaTek AC8227L head units.
+
+---
 
 > **BYD support scope:** These projects focus on BYD cars. They may work on other brands, but other brands are unsupported and there are no plans to add support or fix brand-specific incompatibilities.
 
-[Download & installation](https://shihabal3amri.github.io/DiAuto/) ·
-[Latest release](https://github.com/shihabal3amri/DiAuto/releases/latest) ·
-[Telegram updates](https://t.me/byd_localized)
+[Original Upstream Releases](https://github.com/shihabal3amri/DiAuto/releases/latest) ·
+[Fork Releases](https://github.com/wsknnew/DiAutoNew/releases/latest)
 
 [English](https://shihabal3amri.github.io/DiAuto/) · [العربية](https://shihabal3amri.github.io/DiAuto/ar/) · [Русский](https://shihabal3amri.github.io/DiAuto/ru/) · [Español](https://shihabal3amri.github.io/DiAuto/es/) · [简体中文](https://shihabal3amri.github.io/DiAuto/zh-Hans/)
 
