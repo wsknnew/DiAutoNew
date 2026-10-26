@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="16dp">
 
         <!-- Top Header Navigation Bar -->
         <LinearLayout
@@ -117,11 +117,208 @@
                 android:textColor="@color/da_muted" />
         </LinearLayout>
 
-        <!-- Primary Cockpit Card -->
+        <!-- Connection Quick Glance Bar (Wi-Fi, Bluetooth, USB) -->
         <LinearLayout
+            android:id="@+id/quick_glance_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <!-- Wi-Fi Network Glance Card -->
+            <LinearLayout
+                android:id="@+id/glance_wifi_card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="50dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/da_card"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp">
+
+                <ImageView
+                    android:id="@+id/glance_wifi_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_wifi"
+                    app:tint="@color/da_accent"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_wifi_title"
+                        android:textSize="10sp"
+                        android:textColor="@color/da_muted"
+                        android:textAllCaps="true"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/glance_wifi_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_wifi_disconnected"
+                        android:textSize="12sp"
+                        android:textColor="@color/da_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/glance_wifi_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/shape_dot_grey"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <!-- Bluetooth Glance Card -->
+            <LinearLayout
+                android:id="@+id/glance_bluetooth_card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="50dp"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/da_card"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp">
+
+                <ImageView
+                    android:id="@+id/glance_bluetooth_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_da_bluetooth"
+                    app:tint="@color/da_accent"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_bt_title"
+                        android:textSize="10sp"
+                        android:textColor="@color/da_muted"
+                        android:textAllCaps="true"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/glance_bluetooth_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_bt_disconnected"
+                        android:textSize="12sp"
+                        android:textColor="@color/da_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/glance_bluetooth_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/shape_dot_grey"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <!-- USB Cable Glance Card -->
+            <LinearLayout
+                android:id="@+id/glance_usb_card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="50dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/da_card"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp">
+
+                <ImageView
+                    android:id="@+id/glance_usb_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_usb_white"
+                    app:tint="@color/da_accent"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_usb_title"
+                        android:textSize="10sp"
+                        android:textColor="@color/da_muted"
+                        android:textAllCaps="true"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/glance_usb_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_usb_disconnected"
+                        android:textSize="12sp"
+                        android:textColor="@color/da_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/glance_usb_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/shape_dot_grey"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Primary Cockpit Card: Wireless Android Auto -->
+        <LinearLayout
+            android:id="@+id/wireless_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
             android:orientation="vertical"
             android:background="@drawable/da_card"
             android:padding="20dp">
@@ -241,20 +438,20 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/wifi_button"
                 android:layout_width="match_parent"
-                android:layout_height="68dp"
+                android:layout_height="64dp"
                 android:layout_marginTop="14dp"
-                android:text="@string/da_connect"
-                android:textSize="18sp"
+                android:text="@string/da_connect_wireless"
+                android:textSize="17sp"
                 android:textAllCaps="false"
                 android:gravity="center"
                 android:textColor="@color/da_background"
                 app:backgroundTint="@color/da_accent"
-                app:cornerRadius="20dp"
+                app:cornerRadius="18dp"
                 app:icon="@drawable/ic_android_auto"
                 app:iconTint="@color/da_background"
-                app:iconSize="26dp"
+                app:iconSize="24dp"
                 app:iconGravity="textStart"
-                app:iconPadding="12dp" />
+                app:iconPadding="10dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_cancel_connect"
@@ -281,73 +478,147 @@
                 android:textColor="@color/da_muted" />
         </LinearLayout>
 
-        <!-- Secondary Bento Cards -->
+        <!-- Secondary Cockpit Card: USB Android Auto -->
+        <LinearLayout
+            android:id="@+id/usb_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:background="@drawable/da_card"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/da_usb_title"
+                android:textSize="12sp"
+                android:textColor="@color/da_accent"
+                android:letterSpacing="0.12"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/usb_connection_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/da_plug_in_usb"
+                android:textSize="22sp"
+                android:textColor="@color/da_text"
+                android:fontFamily="sans-serif-medium"
+                android:accessibilityLiveRegion="polite" />
+
+            <TextView
+                android:id="@+id/usb_step_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/switching_to_android_auto"
+                android:textSize="13sp"
+                android:textColor="@color/da_accent"
+                android:visibility="gone" />
+
+            <!-- Detected USB Device Pill -->
+            <LinearLayout
+                android:id="@+id/usb_device_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/da_card_inner"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp"
+                android:gravity="center_vertical"
+                android:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/usb_status_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:src="@drawable/shape_dot_grey"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/usb_device_name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:text="@string/da_no_usb_phone"
+                    android:textColor="@color/da_text"
+                    android:textSize="15sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/btn_usb_manage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_pill_translucent"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:text="@string/da_usb_manage"
+                    android:textColor="@color/da_accent"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/usb_connect_button"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="14dp"
+                android:text="@string/da_connect_usb"
+                android:textSize="17sp"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textColor="@color/da_background"
+                app:backgroundTint="@color/da_accent"
+                app:cornerRadius="18dp"
+                app:icon="@drawable/ic_usb_white"
+                app:iconTint="@color/da_background"
+                app:iconSize="24dp"
+                app:iconGravity="textStart"
+                app:iconPadding="10dp" />
+
+            <TextView
+                android:id="@+id/usb_hint_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/da_wired_usb_dashboard_hint"
+                android:textSize="12sp"
+                android:textColor="@color/da_muted" />
+        </LinearLayout>
+
+        <!-- Secondary Row: Phone Hotspot Mode & Preferences -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:orientation="vertical">
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
 
-            <!-- 1. Wired USB Action Card -->
-            <LinearLayout
-                android:id="@+id/usb_button"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/da_card"
-                android:paddingHorizontal="18dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
-
-                <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:src="@drawable/ic_usb_white"
-                    app:tint="@color/da_accent"
-                    android:importantForAccessibility="no" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/da_wired_usb"
-                        android:textColor="@color/da_text"
-                        android:textSize="15sp"
-                        android:fontFamily="sans-serif-medium" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/da_wired_usb_hint"
-                        android:textColor="@color/da_muted"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 2. Phone Hotspot Mode Action Card -->
+            <!-- 1. Phone Hotspot Mode Action Card -->
             <LinearLayout
                 android:id="@+id/hotspot_button"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_marginTop="10dp"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/da_card"
-                android:paddingHorizontal="18dp"
+                android:paddingHorizontal="12dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
 
                 <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:src="@drawable/ic_wifi"
                     app:tint="@color/da_accent"
                     android:importantForAccessibility="no" />
@@ -355,7 +626,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
+                    android:layout_marginStart="10dp"
                     android:orientation="vertical">
 
                     <TextView
@@ -363,7 +634,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/da_phone_hotspot"
                         android:textColor="@color/da_text"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:fontFamily="sans-serif-medium" />
 
                     <TextView
@@ -371,27 +642,30 @@
                         android:layout_height="wrap_content"
                         android:text="@string/da_phone_hotspot_hint"
                         android:textColor="@color/da_muted"
-                        android:textSize="12sp" />
+                        android:textSize="11sp"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- 3. Settings & Preferences Card -->
+            <!-- 2. Settings & Preferences Card -->
             <LinearLayout
                 android:id="@+id/settings_button"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_marginTop="10dp"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/da_card"
-                android:paddingHorizontal="18dp"
+                android:paddingHorizontal="12dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
 
                 <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:src="@drawable/ic_settings_white"
                     app:tint="@color/da_accent"
                     android:importantForAccessibility="no" />
@@ -399,7 +673,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
+                    android:layout_marginStart="10dp"
                     android:orientation="vertical">
 
                     <TextView
@@ -407,7 +681,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/da_preferences_title"
                         android:textColor="@color/da_text"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:fontFamily="sans-serif-medium" />
 
                     <TextView
@@ -415,10 +689,11 @@
                         android:layout_height="wrap_content"
                         android:text="@string/da_preferences_desc"
                         android:textColor="@color/da_muted"
-                        android:textSize="12sp" />
+                        android:textSize="11sp"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
                 </LinearLayout>
             </LinearLayout>
-
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

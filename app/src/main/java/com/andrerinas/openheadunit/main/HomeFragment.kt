@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.hardware.usb.UsbManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
@@ -20,6 +22,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -30,6 +33,9 @@ import com.andrerinas.openheadunit.aap.AapProjectionActivity
 import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.aap.WirelessScopePolicy
 import com.andrerinas.openheadunit.connection.CommManager
+import com.andrerinas.openheadunit.connection.UsbAccessoryMode
+import com.andrerinas.openheadunit.connection.UsbDeviceCompat
+import com.andrerinas.openheadunit.connection.UsbReceiver
 import com.andrerinas.openheadunit.utils.AppThemeManager
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.utils.HotspotConnectionHelper
@@ -40,9 +46,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** The car's cockpit standby screen. Wireless pairing is the primary path; USB remains a fallback. */
+/** The car's cockpit standby screen. Wireless and USB connections are both primary 1-tap options. */
 class HomeFragment : Fragment() {
     private val app get() = App.provide(requireContext())
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private var detectedUsbDevice: UsbDeviceCompat? = null
     private var activeDialog: androidx.appcompat.app.AlertDialog? = null
     private var hasAttemptedAutoConnectOnOpen = false
     private var autoConnectJob: Job? = null
@@ -84,10 +92,8 @@ class HomeFragment : Fragment() {
             cancelAutoConnectCountdown()
             if (app.commManager.isConnected) {
                 openProjection()
-            } else if (app.settings.useHotspotAsDefaultWireless) {
-                connectViaHotspot()
             } else {
-                requestBluetoothAndConnect()
+                handleWirelessConnect()
             }
         }
 
@@ -105,10 +111,34 @@ class HomeFragment : Fragment() {
             }
         }
 
-        view.findViewById<View>(R.id.usb_button).setOnClickListener {
+        // 1-Tap USB Connect: Button, card click, and quick glance pill
+        val usbConnectButton = view.findViewById<MaterialButton?>(R.id.usb_connect_button)
+        usbConnectButton?.setOnClickListener {
+            handleUsbConnect()
+        }
+
+        view.findViewById<View?>(R.id.usb_button)?.setOnClickListener {
+            handleUsbConnect()
+        }
+
+        view.findViewById<View?>(R.id.btn_usb_manage)?.setOnClickListener {
             cancelAutoConnectCountdown()
-            if (app.commManager.isConnected) openProjection()
-            else findNavController().navigate(R.id.action_homeFragment_to_usbListFragment)
+            findNavController().navigate(R.id.action_homeFragment_to_usbListFragment)
+        }
+
+        view.findViewById<View?>(R.id.glance_usb_card)?.setOnClickListener {
+            handleUsbConnect()
+        }
+
+        view.findViewById<View?>(R.id.glance_usb_card)?.setOnLongClickListener {
+            cancelAutoConnectCountdown()
+            findNavController().navigate(R.id.action_homeFragment_to_usbListFragment)
+            true
+        }
+
+        // Observe USB devices in real time on main dashboard
+        mainViewModel.usbDevices.observe(viewLifecycleOwner) { devices ->
+            updateUsbDeviceUi(devices)
         }
 
         view.findViewById<View>(R.id.settings_button).setOnClickListener {
@@ -242,6 +272,7 @@ class HomeFragment : Fragment() {
         view?.let { updateAudioRoutingUi(it) }
         updateDeviceUi()
         updateQuickGlanceUi()
+        updateUsbDeviceUi(mainViewModel.usbDevices.value)
         updateConnectionStateUi(app.commManager.connectionState.value)
     }
 
@@ -331,41 +362,237 @@ class HomeFragment : Fragment() {
         return dev
     }
 
+    private fun handleWirelessConnect() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val netStatus = HotspotConnectionHelper.getNetworkStatus(requireContext())
+            if (netStatus.isWifiConnected && (app.settings.useHotspotAsDefaultWireless || netStatus.isPhoneHotspot || netStatus.gatewayIp != null)) {
+                val targetIp = netStatus.gatewayIp ?: app.settings.customHotspotPhoneIp.ifEmpty { "192.168.43.1" }
+                connectToHotspotIp(targetIp)
+            } else if (app.settings.useHotspotAsDefaultWireless) {
+                connectViaHotspot()
+            } else {
+                requestBluetoothAndConnect()
+            }
+        }
+    }
+
+    private fun handleUsbConnect() {
+        cancelAutoConnectCountdown()
+        if (app.commManager.isConnected) {
+            openProjection()
+            return
+        }
+
+        val dev = detectedUsbDevice
+        if (dev != null) {
+            connectUsbDevice(dev)
+        } else {
+            val usbManager = requireContext().getSystemService(Context.USB_SERVICE) as UsbManager
+            val accessories = usbManager.accessoryList
+            if (!accessories.isNullOrEmpty()) {
+                Toast.makeText(requireContext(), R.string.android_auto_starting, Toast.LENGTH_SHORT).show()
+                (activity as? MainActivity)?.beginAutoConnect(
+                    "1-tap USB (accessory mode)",
+                    MainActivity.ConnectionUiMode.OVERLAY
+                )
+                ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java).apply {
+                    action = AapService.ACTION_CHECK_USB
+                })
+            } else {
+                Toast.makeText(requireContext(), R.string.da_plug_in_usb_hint, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun connectUsbDevice(device: UsbDeviceCompat) {
+        if (device.isInAccessoryMode) {
+            Toast.makeText(requireContext(), R.string.android_auto_starting, Toast.LENGTH_SHORT).show()
+            (activity as? MainActivity)?.beginAutoConnect(
+                "1-tap USB (accessory mode)",
+                MainActivity.ConnectionUiMode.OVERLAY
+            )
+            ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java).apply {
+                action = AapService.ACTION_CHECK_USB
+            })
+        } else {
+            val usbManager = requireContext().getSystemService(Context.USB_SERVICE) as UsbManager
+            if (usbManager.hasPermission(device.wrappedDevice)) {
+                val usbMode = UsbAccessoryMode(usbManager)
+                if (usbMode.connectAndSwitch(device.wrappedDevice, app.settings.useLibusb)) {
+                    Toast.makeText(requireContext(), R.string.switching_to_android_auto, Toast.LENGTH_SHORT).show()
+                    (activity as? MainActivity)?.beginAutoConnect(
+                        "1-tap USB (AOA switch)",
+                        MainActivity.ConnectionUiMode.OVERLAY
+                    )
+                } else {
+                    Toast.makeText(requireContext(), R.string.switch_failed, Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), R.string.requesting_usb_permission, Toast.LENGTH_SHORT).show()
+                ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java))
+                usbManager.requestPermission(
+                    device.wrappedDevice,
+                    UsbReceiver.createPermissionPendingIntent(requireContext())
+                )
+            }
+        }
+    }
+
+    private fun getFriendlyUsbDeviceName(device: UsbDeviceCompat): String {
+        val dev = device.wrappedDevice
+        val mfg = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) dev.manufacturerName?.trim() else null
+        val prod = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) dev.productName?.trim() else null
+        val combined = listOfNotNull(mfg?.takeIf { it.isNotBlank() }, prod?.takeIf { it.isNotBlank() }).joinToString(" ")
+        if (combined.isNotBlank()) return combined
+        if (device.isInAccessoryMode) return "Android Auto Accessory"
+        val name = device.deviceName.substringAfterLast('/')
+        return if (name.isNotBlank()) name else getString(R.string.da_device)
+    }
+
+    private fun updateUsbGlanceUi(currentView: View, ctx: Context, device: UsbDeviceCompat?) {
+        val glanceUsbStatus = currentView.findViewById<TextView?>(R.id.glance_usb_status) ?: return
+        val glanceUsbDot = currentView.findViewById<ImageView?>(R.id.glance_usb_dot) ?: return
+        val glanceUsbIcon = currentView.findViewById<ImageView?>(R.id.glance_usb_icon) ?: return
+
+        val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
+        val hasAccessory = !usbManager.accessoryList.isNullOrEmpty()
+        val isConnected = app.commManager.isConnected
+
+        if (isConnected && app.settings.lastConnectionType == Settings.CONNECTION_TYPE_USB) {
+            glanceUsbStatus.setText(R.string.connected)
+            glanceUsbStatus.setTextColor(ContextCompat.getColor(ctx, R.color.da_text))
+            glanceUsbDot.setImageResource(R.drawable.shape_dot_green)
+            glanceUsbIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_accent))
+        } else if (device != null) {
+            glanceUsbStatus.text = getFriendlyUsbDeviceName(device)
+            glanceUsbStatus.setTextColor(ContextCompat.getColor(ctx, R.color.da_text))
+            glanceUsbDot.setImageResource(R.drawable.shape_dot_green)
+            glanceUsbIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_accent))
+        } else if (hasAccessory) {
+            glanceUsbStatus.setText(R.string.glance_usb_connected)
+            glanceUsbStatus.setTextColor(ContextCompat.getColor(ctx, R.color.da_text))
+            glanceUsbDot.setImageResource(R.drawable.shape_dot_green)
+            glanceUsbIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_accent))
+        } else {
+            glanceUsbStatus.setText(R.string.glance_usb_disconnected)
+            glanceUsbStatus.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
+            glanceUsbDot.setImageResource(R.drawable.shape_dot_grey)
+            glanceUsbIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_muted))
+        }
+    }
+
+    private fun updateUsbDeviceUi(devices: List<UsbDeviceCompat>?) {
+        val currentView = view ?: return
+        val ctx = context ?: return
+        val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
+        val hasAccessory = !usbManager.accessoryList.isNullOrEmpty()
+
+        val firstDevice = devices?.firstOrNull()
+        detectedUsbDevice = firstDevice
+
+        val isConnected = app.commManager.isConnected
+
+        // Update glance item
+        updateUsbGlanceUi(currentView, ctx, firstDevice)
+
+        // Update Cockpit USB Card
+        val usbStatusView = currentView.findViewById<TextView?>(R.id.usb_connection_status)
+        val usbDeviceNameView = currentView.findViewById<TextView?>(R.id.usb_device_name)
+        val usbStatusDot = currentView.findViewById<ImageView?>(R.id.usb_status_dot)
+        val usbConnectButton = currentView.findViewById<MaterialButton?>(R.id.usb_connect_button)
+
+        if (isConnected) {
+            usbStatusView?.setText(R.string.da_connected)
+            usbStatusDot?.setImageResource(R.drawable.shape_dot_green)
+            usbConnectButton?.isEnabled = true
+            usbConnectButton?.setText(R.string.da_open)
+            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.material_green_700))
+            usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, android.R.color.white))
+        } else if (firstDevice != null) {
+            val friendly = getFriendlyUsbDeviceName(firstDevice)
+            usbStatusView?.setText(if (firstDevice.isInAccessoryMode) R.string.da_usb_ready else R.string.da_usb_detected)
+            usbDeviceNameView?.text = friendly
+            usbStatusDot?.setImageResource(R.drawable.shape_dot_green)
+            usbConnectButton?.isEnabled = true
+            usbConnectButton?.setText(R.string.da_connect_usb)
+            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.da_accent))
+            usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, R.color.da_background))
+        } else if (hasAccessory) {
+            usbStatusView?.setText(R.string.da_usb_ready)
+            usbDeviceNameView?.setText(R.string.glance_usb_connected)
+            usbStatusDot?.setImageResource(R.drawable.shape_dot_green)
+            usbConnectButton?.isEnabled = true
+            usbConnectButton?.setText(R.string.da_connect_usb)
+            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.da_accent))
+            usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, R.color.da_background))
+        } else {
+            usbStatusView?.setText(R.string.da_plug_in_usb)
+            usbDeviceNameView?.setText(R.string.da_no_usb_phone)
+            usbStatusDot?.setImageResource(R.drawable.shape_dot_grey)
+            usbConnectButton?.isEnabled = true
+            usbConnectButton?.setText(R.string.da_connect_usb)
+            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.da_surface))
+            usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
+        }
+    }
+
     private fun updateDeviceUi() {
         val currentView = view ?: return
         val container = currentView.findViewById<View>(R.id.device_info_container) ?: return
         val nameView = currentView.findViewById<TextView>(R.id.preferred_device_name) ?: return
         val switchBtn = currentView.findViewById<TextView>(R.id.btn_switch_device) ?: return
+        val statusView = currentView.findViewById<TextView>(R.id.connection_status) ?: return
+        val wifiButton = currentView.findViewById<MaterialButton>(R.id.wifi_button)
 
-        val preferred = getPreferredDevice()
         container.visibility = View.VISIBLE
-        if (preferred != null) {
-            val devName = preferred.name?.takeIf { it.isNotBlank() } ?: preferred.address
-            val isConnected = BluetoothHelper.isDeviceConnected(preferred)
-            nameView.text = if (isConnected) "$devName (${getString(R.string.connected)})" else devName
-            switchBtn.text = getString(R.string.da_switch_phone)
-            switchBtn.setOnClickListener {
-                cancelAutoConnectCountdown()
-                if (checkBluetoothPermission()) selectPhone()
-                else requestBluetoothAndConnect()
-            }
-        } else {
-            val adapter = BluetoothHelper.getBluetoothAdapter(requireContext())
-            val hasBonded = try {
-                adapter?.isEnabled == true && !adapter.bondedDevices.isNullOrEmpty()
-            } catch (_: SecurityException) { false }
 
-            if (hasBonded) {
-                nameView.text = getString(R.string.da_paired_phone)
-                switchBtn.text = getString(R.string.da_connect)
-            } else {
-                nameView.text = getString(R.string.no_paired_devices_found)
-                switchBtn.text = getString(R.string.da_pair)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val netStatus = HotspotConnectionHelper.getNetworkStatus(requireContext())
+            if (!isAdded) return@launch
+            if (netStatus.isWifiConnected && (app.settings.useHotspotAsDefaultWireless || netStatus.isPhoneHotspot || netStatus.gatewayIp != null)) {
+                val targetIp = netStatus.gatewayIp ?: app.settings.customHotspotPhoneIp.ifEmpty { "192.168.43.1" }
+                nameView.text = "${netStatus.ssid ?: "Hotspot"} • $targetIp:5277"
+                switchBtn.text = getString(R.string.da_switch_phone)
+                switchBtn.setOnClickListener {
+                    cancelAutoConnectCountdown()
+                    HotspotConnectionDialog.show(childFragmentManager)
+                }
+                if (!app.commManager.isConnected) {
+                    statusView.setText(R.string.da_headunit_server_ready)
+                    wifiButton?.setText(R.string.da_connect_wireless)
+                }
+                return@launch
             }
-            switchBtn.setOnClickListener {
-                cancelAutoConnectCountdown()
-                if (checkBluetoothPermission()) selectPhone()
-                else requestBluetoothAndConnect()
+
+            val preferred = getPreferredDevice()
+            if (preferred != null) {
+                val devName = preferred.name?.takeIf { it.isNotBlank() } ?: preferred.address
+                val isConnected = BluetoothHelper.isDeviceConnected(preferred)
+                nameView.text = if (isConnected) "$devName (${getString(R.string.connected)})" else devName
+                switchBtn.text = getString(R.string.da_switch_phone)
+                switchBtn.setOnClickListener {
+                    cancelAutoConnectCountdown()
+                    if (checkBluetoothPermission()) selectPhone()
+                    else requestBluetoothAndConnect()
+                }
+            } else {
+                val adapter = BluetoothHelper.getBluetoothAdapter(requireContext())
+                val hasBonded = try {
+                    adapter?.isEnabled == true && !adapter.bondedDevices.isNullOrEmpty()
+                } catch (_: SecurityException) { false }
+
+                if (hasBonded) {
+                    nameView.text = getString(R.string.da_paired_phone)
+                    switchBtn.text = getString(R.string.da_connect)
+                } else {
+                    nameView.text = getString(R.string.no_paired_devices_found)
+                    switchBtn.text = getString(R.string.da_pair)
+                }
+                switchBtn.setOnClickListener {
+                    cancelAutoConnectCountdown()
+                    if (checkBluetoothPermission()) selectPhone()
+                    else requestBluetoothAndConnect()
+                }
             }
         }
     }
@@ -468,6 +695,9 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+
+        // 3. USB connected device glance
+        updateUsbGlanceUi(currentView, ctx, detectedUsbDevice)
     }
 
     private fun updateConnectionStateUi(state: CommManager.ConnectionState) {
@@ -486,6 +716,9 @@ class HomeFragment : Fragment() {
                 state is CommManager.ConnectionState.HandshakeComplete)
 
         cancelBtn?.visibility = if (isConnecting) View.VISIBLE else View.GONE
+
+        // Refresh USB card state in sync with connection state
+        updateUsbDeviceUi(mainViewModel.usbDevices.value)
 
         when {
             isConnected -> {
@@ -547,14 +780,14 @@ class HomeFragment : Fragment() {
                 stepText?.visibility = View.GONE
 
                 if (app.settings.useHotspotAsDefaultWireless) {
-                    wifiButton.setText(R.string.da_hotspot_connect)
+                    wifiButton.setText(R.string.da_connect_wireless)
                 } else {
                     val preferred = getPreferredDevice()
                     val targetName = preferred?.name?.takeIf { it.isNotBlank() }
                     if (targetName != null) {
                         wifiButton.text = getString(R.string.da_connect_to, targetName)
                     } else {
-                        wifiButton.setText(R.string.da_connect)
+                        wifiButton.setText(R.string.da_connect_wireless)
                     }
                 }
             }

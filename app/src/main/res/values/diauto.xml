@@ -108,9 +108,9 @@
     <string name="refresh" translatable="false">Refresh</string>
 
     <!-- Release & Custom Edition Info -->
-    <string name="about_release_badge" translatable="false">Release v1.1</string>
+    <string name="about_release_badge" translatable="false">Release v1.2</string>
     <string name="about_modified_info" translatable="false">Custom Release Edition</string>
-    <string name="about_release_date" translatable="false">Release Date: October 26, 2026</string>
+    <string name="about_release_date" translatable="false">Release Date: October 27, 2026</string>
 
     <!-- UI/UX Enhancements -->
     <string name="theme_dark_enabled" translatable="false">Dark Theme enabled</string>
@@ -181,4 +181,27 @@
     <string name="glance_bt_title" translatable="false">Bluetooth Device</string>
     <string name="glance_bt_disconnected" translatable="false">No Device Connected</string>
     <string name="glance_bt_off" translatable="false">Bluetooth Disabled</string>
+    <string name="glance_usb_title" translatable="false">USB Cable</string>
+    <string name="glance_usb_disconnected" translatable="false">Unplugged</string>
+    <string name="glance_usb_connected" translatable="false">Phone Connected</string>
+
+    <!-- Cockpit Dual Connection Options -->
+    <string name="da_usb_title" translatable="false">USB ANDROID AUTO</string>
+    <string name="da_usb_ready" translatable="false">Phone Ready</string>
+    <string name="da_usb_detected" translatable="false">USB Phone Detected</string>
+    <string name="da_plug_in_usb" translatable="false">Plug in USB Cable</string>
+    <string name="da_plug_in_usb_hint" translatable="false">Connect your Android phone using a USB data cable.</string>
+    <string name="da_no_usb_phone" translatable="false">No USB phone detected</string>
+    <string name="da_connect_usb" translatable="false">Connect USB</string>
+    <string name="da_connect_wireless" translatable="false">Connect Wireless</string>
+    <string name="da_headunit_server_title" translatable="false">Head Unit Server</string>
+    <string name="da_headunit_server_ready" translatable="false">Port 5277 Ready</string>
+    <string name="da_usb_manage" translatable="false">Devices</string>
+    <string name="da_wired_usb_dashboard_hint" translatable="false">High-speed wired link. 1 tap to connect when cable is attached.</string>
+
+    <!-- Driving Reconnect & Connection Lost UI -->
+    <string name="da_connection_lost_title" translatable="false">Connection Lost</string>
+    <string name="da_reconnecting_phone" translatable="false">Reconnecting to phone… Please wait</string>
+    <string name="da_disconnect_driving_btn" translatable="false">Disconnect</string>
+    <string name="da_disconnect_driving_hint" translatable="false">Tap to return to car dashboard</string>
 </resources>

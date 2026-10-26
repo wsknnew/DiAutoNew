@@ -71,8 +71,8 @@ android {
         applicationId = "com.wsknnew.diautonew"
         minSdk = 16
         targetSdk = 36
-        versionCode = 1100
-        versionName = "1.1"
+        versionCode = 1200
+        versionName = "1.2"
         setProperty("archivesBaseName", "${applicationId}_${versionName}")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true

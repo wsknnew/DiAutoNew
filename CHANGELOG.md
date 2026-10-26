@@ -1,3 +1,21 @@
+# DiAuto 1.2 — 2026-10-27
+
+- **Dual 1-Tap Cockpit Dashboard:** Main screen redesigned with balanced side-by-side hero cards for Wireless Android Auto and USB Android Auto. Both now connect with a single tap directly from the standby dashboard without navigating submenus.
+- **Head Unit Server Optimization:** Wireless 1-tap connection automatically detects phone hotspot / local Wi-Fi and connects directly to Android Auto's Head Unit Server (`port 5277`), displaying server IP and connection status live on the dashboard.
+- **Glance USB Status & Phone Model Detection:** Added USB connection card to the top quick-glance bar and USB hero card, showing live cable status and phone model name (e.g. Pixel, Samsung Galaxy) with green/grey readiness indicators.
+- **Elimination of Annoying Repeated USB Prompts:** Disabled system-level `UsbAttachedActivity` by default in settings and removed catch-all USB device filter. DiAuto now detects USB devices silently and dynamically within the app without annoying repeated OS permission popups on connection or AOA re-enumeration.
+- **High-Speed Socket & Bulk Transfer Buffers:** Quadrupled low-latency TCP socket buffer to 1 MB (`1024 * 1024` bytes) to absorb wireless packet jitter on Wi-Fi hotspots, and increased USB read buffer to 64 KB with reduced quiet-bus backoff (20ms) for ultra-low latency video streaming.
+- **Automated Reconnection on Unexpected Disconnects:** Added automatic reconnect logic for Head Unit Server (`5277`) and USB accessory mode when transient drops occur during driving.
+- **Driving-Friendly Connection Lost & Disconnect UI:** High-visibility cockpit reconnecting overlay with large 28sp warning, 18sp subtext, and a massive 60dp red `Disconnect` button for effortless 1-tap exit back to the car launcher while driving.
+
+# DiAuto 1.1 — 2026-10-26
+
+- Custom Edition package renaming to `com.wsknnew.diautonew`.
+- Navigation GPS source toggle (Default: Phone GPS, Option: Car head unit GPS).
+- Driving-safe 4-option Exit AA dialog (Disconnect, Floating PiP, Background, Car Settings).
+- Quick Glance Connectivity Bar on the cockpit dashboard (Wi-Fi and Bluetooth).
+- DSP routing & microphone buffer pooling hardening.
+
 # DiAuto 0.3.12 — 2026-10-17
 
 - Windshield HUD: re-send the instrument navigation state (0x43E0003A = 2) at most every 3.5 s while guidance shows, as the stock map does. The stock map resets it when the cluster display appears, the navi mode changes or the map app starts, which hid the arrows until the route was restarted (#41).

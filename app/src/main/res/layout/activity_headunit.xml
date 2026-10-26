@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,7 +10,7 @@
         android:id="@+id/loading_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#CC000000">
+        android:background="#D9000000">
 
         <!-- Layer 1: Custom media (drawn first = behind everything) -->
         <ImageView
@@ -27,60 +28,107 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <!-- Layer 2: Default loading content (text + spinner) -->
+        <!-- Layer 2: Default loading content (text + spinner + driving disconnect card) -->
         <LinearLayout
             android:id="@+id/loading_default_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="16dp">
+            android:padding="24dp">
 
+            <!-- Automotive Centered Status Card -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:maxWidth="560dp"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:background="@drawable/da_card"
+                android:paddingHorizontal="36dp"
+                android:paddingVertical="28dp">
 
-                <ProgressBar
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:indeterminate="true"
-                    android:indeterminateTint="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/overlay_text"
+                <!-- Status Header: Warning Icon + Spinner + Large Title -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:text="@string/android_auto_starting"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:id="@+id/overlay_warning_icon"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="16dp"
+                        android:src="@drawable/ic_warning_white"
+                        app:tint="@color/material_amber_500"
+                        android:visibility="gone"
+                        android:importantForAccessibility="no" />
+
+                    <ProgressBar
+                        android:id="@+id/overlay_progress"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:indeterminate="true"
+                        android:indeterminateTint="@color/da_accent" />
+
+                    <TextView
+                        android:id="@+id/overlay_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/android_auto_starting"
+                        android:textColor="@color/da_text"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
+                <!-- High Legibility Subtitle / Reconnect Status for Driving -->
+                <TextView
+                    android:id="@+id/overlay_detail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center"
+                    android:maxWidth="460dp"
+                    android:textColor="@color/da_muted"
+                    android:textSize="18sp"
+                    android:lineSpacingExtra="4dp"
+                    android:visibility="gone" />
+
+                <!-- Large Easy-at-a-Glance Driving Disconnect CTA -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/disconnect_button"
+                    android:layout_width="wrap_content"
+                    android:minWidth="240dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/da_disconnect_driving_btn"
                     android:textColor="@android:color/white"
-                    android:textSize="27sp" />
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
+                    android:textAllCaps="false"
+                    app:cornerRadius="18dp"
+                    app:backgroundTint="@color/material_red_700"
+                    app:icon="@drawable/ic_close_white"
+                    app:iconSize="24dp"
+                    app:iconPadding="10dp"
+                    app:iconGravity="textStart"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/disconnect_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/da_disconnect_driving_hint"
+                    android:textColor="@color/da_muted"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/overlay_detail"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:maxWidth="400dp"
-                android:textColor="@android:color/white"
-                android:textSize="14sp"
-                android:visibility="gone" />
-
-            <Button
-                android:id="@+id/disconnect_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:paddingStart="24dp"
-                android:paddingEnd="24dp"
-                android:text="@string/shortcut_disconnect_title"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Layer 3: Custom media status text (drawn last = on top of everything) -->
@@ -92,19 +140,19 @@
             android:visibility="gone">
 
             <ProgressBar
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:indeterminate="true"
-                android:indeterminateTint="@android:color/white" />
+                android:indeterminateTint="@color/da_accent" />
 
             <TextView
                 android:id="@+id/loading_custom_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="14dp"
                 android:text="@string/android_auto_starting"
                 android:textColor="@android:color/white"
-                android:textSize="22sp"
+                android:textSize="24sp"
                 android:shadowColor="#AA000000"
                 android:shadowDx="1"
                 android:shadowDy="1"

@@ -351,8 +351,8 @@
     <string name="usb_auto_connect_description">Automatically connect to a known USB device when the application is opened.</string>
     <string name="auto_start_bt_label">Auto-start on Bluetooth</string>
     <string name="auto_start_bt_description">Automatically open Open Headunit when a specific Bluetooth device connects.</string>
-    <string name="listen_for_usb_devices_label">Listen for USB Devices</string>
-    <string name="listen_for_usb_devices_description">Show the Android system prompt when a USB device is plugged in.</string>
+    <string name="listen_for_usb_devices_label">Show Android System USB Prompt</string>
+    <string name="listen_for_usb_devices_description">Show the Android system prompt when a USB device is plugged in. Keep OFF to suppress repeated system popups (DiAuto handles USB directly inside the app).</string>
     <string name="show_toast_messages">Show Toast Messages</string>
     <string name="show_toast_messages_description">Display status toast popups on connection, disconnect, and mode switching.</string>
     <string name="auto_start_usb_label">Auto-start on USB</string>

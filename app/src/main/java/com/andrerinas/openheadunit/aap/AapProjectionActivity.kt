@@ -16,6 +16,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -1046,16 +1047,23 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         findViewById<View>(R.id.loading_custom_text_overlay)?.visibility = View.GONE
         stopCustomLoadingMedia()
         findViewById<View>(R.id.loading_custom_video)?.visibility = View.GONE
-        overlay.setBackgroundColor(Color.parseColor("#CC000000"))
+        overlay.setBackgroundColor(Color.parseColor("#E6000000"))
 
         val title = findViewById<TextView>(R.id.overlay_text)
         val detail = findViewById<TextView>(R.id.overlay_detail)
         val button = findViewById<Button>(R.id.disconnect_button)
+        val warningIcon = findViewById<ImageView>(R.id.overlay_warning_icon)
+        val hintText = findViewById<TextView>(R.id.disconnect_hint)
+        val progress = findViewById<ProgressBar>(R.id.overlay_progress)
+
         overlay.visibility = View.VISIBLE
-        title?.text = getString(R.string.connection_interrupted)
-        detail?.text = getString(R.string.connection_interrupted_detail)
+        warningIcon?.visibility = View.VISIBLE
+        progress?.visibility = View.VISIBLE
+        title?.text = getString(R.string.da_connection_lost_title)
+        detail?.text = getString(R.string.da_reconnecting_phone)
         detail?.visibility = View.VISIBLE
         button?.visibility = View.VISIBLE
+        hintText?.visibility = View.VISIBLE
     }
 
     private fun hideReconnectingOverlay() {
@@ -1064,9 +1072,13 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         val overlay = findViewById<View>(R.id.loading_overlay) ?: return
         val detail = findViewById<TextView>(R.id.overlay_detail)
         val button = findViewById<Button>(R.id.disconnect_button)
+        val warningIcon = findViewById<ImageView>(R.id.overlay_warning_icon)
+        val hintText = findViewById<TextView>(R.id.disconnect_hint)
         overlay.visibility = View.GONE
+        warningIcon?.visibility = View.GONE
         detail?.visibility = View.GONE
         button?.visibility = View.GONE
+        hintText?.visibility = View.GONE
         stopCustomLoadingMedia()
         touchOverlayView?.requestFocus()
     }

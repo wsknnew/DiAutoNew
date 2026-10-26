@@ -1413,14 +1413,11 @@ class AapService : Service(), UsbReceiver.Listener {
 
         val lastType = settings.lastConnectionType
 
-        // USB auto-reconnect: try again after a delay to give dongles time to re-enumerate.
-        // Skip if the user voluntarily exited AA — the dongle is likely still connected with
-        // stale data, and reconnecting immediately just causes handshake failures. The next
-        // USB attach event will re-trigger the flow cleanly.
-        if (lastType == Settings.CONNECTION_TYPE_USB &&
-            (settings.autoConnectLastSession || settings.autoConnectSingleUsbDevice)) {
+        // USB auto-reconnect: try again after a delay to give devices time to re-enumerate.
+        // Skip if the user voluntarily exited AA — the device may still have stale data.
+        if (lastType == Settings.CONNECTION_TYPE_USB) {
             if (state.isUserExit && !(settings.autoStartOnUsb && settings.reopenOnReconnection)) {
-                AppLog.i("AapService: USB disconnect after user Exit. Skipping auto-reconnect (waiting for dongle re-enumeration).")
+                AppLog.i("AapService: USB disconnect after user Exit. Skipping auto-reconnect.")
                 userExitedAA = true
                 return
             }
@@ -1428,20 +1425,30 @@ class AapService : Service(), UsbReceiver.Listener {
                 AppLog.i("AapService: USB disconnect after user Exit with reopenOnReconnection enabled. Will reconnect on next USB attach.")
                 return
             }
-            AppLog.i("AapService: USB disconnect. Scheduling reconnect check in ${USB_RECONNECT_DELAY_MS}ms...")
+            AppLog.i("AapService: USB unexpected disconnect. Scheduling reconnect check in ${USB_RECONNECT_DELAY_MS}ms...")
             serviceScope.launch {
                 delay(USB_RECONNECT_DELAY_MS)
                 if (!commManager.isConnected) checkAlreadyConnectedUsb(force = true)
             }
+            return
         }
 
-        if (!state.isClean) {
-            val mode = settings.wifiConnectionMode
-            if (mode == 1 && lastType != Settings.CONNECTION_TYPE_USB) {
-                AppLog.i("AapService: Unclean WiFi disconnect in Auto Mode. Retrying discovery in 2s...")
-                serviceScope.launch {
-                    delay(2000)
-                    if (!commManager.isConnected) startDiscovery(oneShot = true)
+        // Wireless / Headunit Server auto-reconnect for unexpected disconnects:
+        if (lastType == Settings.CONNECTION_TYPE_WIFI && !state.isUserExit) {
+            val configuredIp = settings.lastConnectionIp
+            serviceScope.launch {
+                delay(2500)
+                if (!commManager.isConnected && !userExitedAA) {
+                    val targetIp = if (configuredIp.isNotBlank()) configuredIp else {
+                        HotspotConnectionHelper.getNetworkStatus(this@AapService).gatewayIp ?: ""
+                    }
+                    if (targetIp.isNotBlank()) {
+                        AppLog.i("AapService: Wireless/Headunit Server unexpected disconnect. Attempting reconnect to $targetIp:5277")
+                        commManager.connectAsync(targetIp, HotspotConnectionHelper.AAP_TCP_PORT)
+                    } else if (settings.wifiConnectionMode == 1) {
+                        AppLog.i("AapService: Unclean WiFi disconnect in Auto Mode without target IP. Retrying discovery...")
+                        startDiscovery(oneShot = true)
+                    }
                 }
             }
         }

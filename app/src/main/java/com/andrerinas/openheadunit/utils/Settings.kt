@@ -807,7 +807,7 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putString("auto-start-wifi-ssid", value).apply() }
 
     var listenForUsbDevices: Boolean
-        get() = prefs.getBoolean("listen-for-usb-devices", true)
+        get() = prefs.getBoolean("listen-for-usb-devices", false)
         set(value) { prefs.edit().putBoolean("listen-for-usb-devices", value).apply() }
 
     var showToastMessages: Boolean
@@ -1341,7 +1341,7 @@ class Settings(private val context: Context) {
             } else {
                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             }
-            return prefs.getBoolean(KEY_LISTEN_FOR_USB_DEVICES, true) // Default is TRUE
+            return prefs.getBoolean(KEY_LISTEN_FOR_USB_DEVICES, false) // Default is FALSE (suppresses repeated system prompts)
         }
 
         fun syncListenForUsbDevicesToDeviceStorage(context: Context, enabled: Boolean) {

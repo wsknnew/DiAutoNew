@@ -23,6 +23,7 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
     // Regular WirelessServer-accepted sockets (Hotspot/WiFi Direct/Headunit Server) and
     // manual-IP connections are NOT single-message and need those handshake safeguards.
     private var singleMessage: Boolean = false
+    private var currentSoTimeout: Int = -1
 
     init {
         transport = Socket()
@@ -62,9 +63,13 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
     override fun recvBlocking(buf: ByteArray, length: Int, timeout: Int, readFully: Boolean): Int {
         val inp = input ?: return -1
         return try {
-            // Dynamically apply the caller's timeout so handshake (short timeouts)
-            // and streaming (long timeouts) both work correctly on the same socket.
-            try { transport.soTimeout = timeout } catch (_: Exception) {}
+            // Apply caller's timeout only when changed to avoid thousands of redundant JNI syscalls/sec
+            if (currentSoTimeout != timeout) {
+                try {
+                    transport.soTimeout = timeout
+                    currentSoTimeout = timeout
+                } catch (_: Exception) {}
+            }
             if (readFully) {
                 inp.readFully(buf, 0, length)
                 length
@@ -245,6 +250,6 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
 
     companion object {
         private const val DEF_BUFFER_LENGTH = 131080
-        private const val LOW_LATENCY_SOCKET_BUFFER_BYTES = 256 * 1024
+        private const val LOW_LATENCY_SOCKET_BUFFER_BYTES = 1024 * 1024
     }
 }

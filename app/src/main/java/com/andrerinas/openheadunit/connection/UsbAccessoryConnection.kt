@@ -23,7 +23,8 @@ class UsbAccessoryConnection(private val usbMgr: UsbManager, private val device:
     @Volatile private var endpointOut: UsbEndpoint? = null
 
     // Internal buffer — only ever accessed by the poll thread (recvBlocking); no lock needed.
-    private val internalBuffer = ByteArray(16384)
+    // 64KB buffer matches USB high-speed bulk bursts to maximize throughput and minimize JNI calls.
+    private val internalBuffer = ByteArray(65536)
     private var internalBufferPos = 0
     private var internalBufferAvailable = 0
 
@@ -263,7 +264,7 @@ class UsbAccessoryConnection(private val usbMgr: UsbManager, private val device:
                         AppLog.w("USB read errors ($consecutiveReadErrors) for ${errorDurationMs / 1000}s — waiting for recovery...")
                     }
                     if (consecutiveReadErrors >= 5) {
-                        try { Thread.sleep(200) } catch (_: InterruptedException) {}
+                        try { Thread.sleep(20) } catch (_: InterruptedException) {}
                     }
                     return if (totalReturned > 0) totalReturned else -1
                 }

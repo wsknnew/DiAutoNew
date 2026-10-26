@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <resources>
-
-    <!-- Match all devices -->
-    <usb-device />
-
+    <!-- Android Open Accessory (AOA) Protocol IDs (0x18D1: 0x2D00, 0x2D01) -->
     <usb-device vendor-id="6353" product-id="11520" />
     <usb-device vendor-id="6353" product-id="11521" />
-
-
 </resources>
