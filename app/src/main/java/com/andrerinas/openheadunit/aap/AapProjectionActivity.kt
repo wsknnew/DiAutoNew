@@ -1341,59 +1341,59 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         }
     }
 
-    private data class ExitOption(val titleResId: Int, val iconResId: Int, val iconColor: Int)
-
     private fun showExitDialog() {
-        val options = mutableListOf<ExitOption>()
-        options.add(ExitOption(R.string.exit_dialog_stop, R.drawable.ic_stop, Color.RED))
+        val dialog = android.app.Dialog(this)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_exit_android_auto, null)
+        dialog.setContentView(dialogView)
+
+        val optionStop = dialogView.findViewById<View>(R.id.optionStop)
+        val optionPip = dialogView.findViewById<View>(R.id.optionPip)
+        val optionBackground = dialogView.findViewById<View>(R.id.optionBackground)
+        val optionSettings = dialogView.findViewById<View>(R.id.optionSettings)
+        val btnDismiss = dialogView.findViewById<View>(R.id.btnDismiss)
+
+        optionStop.setOnClickListener {
+            dialog.dismiss()
+            commManager.disconnect(sendByeBye = true)
+            finish()
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            options.add(ExitOption(R.string.exit_dialog_pip, R.drawable.ic_pip, Color.LTGRAY))
+            optionPip.visibility = View.VISIBLE
+            optionPip.setOnClickListener {
+                dialog.dismiss()
+                enterPiP()
+            }
+        } else {
+            optionPip.visibility = View.GONE
         }
 
-        options.add(ExitOption(R.string.exit_dialog_background, R.drawable.ic_home, Color.LTGRAY))
-        options.add(ExitOption(R.string.exit_dialog_settings, R.drawable.ic_settings_quick, Color.LTGRAY))
-
-        val adapter = object : android.widget.BaseAdapter() {
-            override fun getCount(): Int = options.size
-            override fun getItem(position: Int): Any = options[position]
-            override fun getItemId(position: Int): Long = position.toLong()
-            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
-                val view = convertView ?: layoutInflater.inflate(R.layout.dialog_exit_item, parent, false)
-                val option = options[position]
-                val iconView = view.findViewById<android.widget.ImageView>(R.id.icon)
-                val textView = view.findViewById<android.widget.TextView>(R.id.text)
-
-                textView.setText(option.titleResId)
-                iconView.setImageResource(option.iconResId)
-                iconView.setColorFilter(option.iconColor)
-
-                return view
-            }
+        optionBackground.setOnClickListener {
+            dialog.dismiss()
+            moveToBackground()
         }
 
-        val dialog = MaterialAlertDialogBuilder(this, R.style.DarkAlertDialog)
-            .setTitle(R.string.exit_dialog_title)
-            .setAdapter(adapter) { _, which ->
-                val selected = options[which]
-                when (selected.titleResId) {
-                    R.string.exit_dialog_stop -> {
-                        commManager.disconnect(sendByeBye = true)
-                        finish()
-                    }
-                    R.string.exit_dialog_pip -> {
-                        enterPiP()
-                    }
-                    R.string.exit_dialog_background -> {
-                        moveToBackground()
-                    }
-                    R.string.exit_dialog_settings -> {
-                        showQuickSettings()
-                    }
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        optionSettings.setOnClickListener {
+            dialog.dismiss()
+            showQuickSettings()
+        }
+
+        btnDismiss.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.let { window ->
+            window.setBackgroundDrawableResource(android.R.color.transparent)
+            val metrics = resources.displayMetrics
+            // Optimize dialog width for landscape automotive displays: generous touch targets and comfortable reading
+            val targetWidth = (metrics.widthPixels * 0.60f).toInt().coerceIn(
+                (460 * metrics.density).toInt(),
+                (640 * metrics.density).toInt().coerceAtMost((metrics.widthPixels * 0.92f).toInt())
+            )
+            window.setLayout(targetWidth, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+
+        dialog.show()
 
         if (settings.hudMirroring) {
             val root = dialog.window?.findViewById<View>(android.R.id.content) ?: dialog.window?.decorView

@@ -42,11 +42,15 @@ class DriveSettingsFragment : Fragment(R.layout.fragment_drive_settings) {
 
         // Quick Audio Routing Toggle (Music via Car Bluetooth vs AA Audio)
         setupAudioRouting(view)
+        setupGpsRouting(view)
     }
 
     override fun onResume() {
         super.onResume()
-        view?.let { setupAudioRouting(it) }
+        view?.let {
+            setupAudioRouting(it)
+            setupGpsRouting(it)
+        }
     }
 
     private fun setupAudioRouting(view: View) {
@@ -77,5 +81,35 @@ class DriveSettingsFragment : Fragment(R.layout.fragment_drive_settings) {
         }
 
         audioCard.setOnClickListener { toggleAction() }
+    }
+
+    private fun setupGpsRouting(view: View) {
+        val gpsCard = view.findViewById<View?>(R.id.da_gps_card) ?: return
+        val gpsSwitch = view.findViewById<SwitchMaterial?>(R.id.switch_gps_navigation) ?: return
+        val gpsDesc = view.findViewById<TextView?>(R.id.gps_routing_desc)
+
+        val isCarGps = settings.useGpsForNavigation
+        gpsSwitch.isChecked = isCarGps
+        gpsDesc?.text = getString(
+            if (isCarGps) R.string.gps_source_car_enabled
+            else R.string.gps_source_phone_enabled
+        )
+
+        val toggleAction = {
+            val newState = !gpsSwitch.isChecked
+            gpsSwitch.isChecked = newState
+            settings.useGpsForNavigation = newState
+            gpsDesc?.text = getString(
+                if (newState) R.string.gps_source_car_enabled
+                else R.string.gps_source_phone_enabled
+            )
+            Toast.makeText(
+                requireContext(),
+                if (newState) R.string.gps_source_car_enabled else R.string.gps_source_phone_enabled,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        gpsCard.setOnClickListener { toggleAction() }
     }
 }

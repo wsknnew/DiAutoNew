@@ -204,10 +204,13 @@ class ServiceDiscoveryResponse(private val context: Context)
                     service.id = Channel.ID_BTH
                     service.bluetoothService = Control.Service.BluetoothService.newBuilder().also {
                         it.carAddress = settings.bluetoothAddress
-                        it.addAllSupportedPairingMethods(
-                                listOf(Control.BluetoothPairingMethod.A2DP,
-                                        Control.BluetoothPairingMethod.HFP)
-                        )
+                        // When musicViaBluetooth is false, media audio is streamed via Android Auto protocol (Channel 3).
+                        // In that case, do NOT announce A2DP pairing to Android Auto to prevent a dual-stream conflict
+                        // where both Android Auto audio sink and Bluetooth A2DP audio are opened simultaneously on the phone,
+                        // which triggers streaming service concurrency errors ("Too many devices streaming on your plan").
+                        val pairingMethods = com.andrerinas.openheadunit.aap.BluetoothPairingPolicy
+                            .getSupportedPairingMethods(settings.musicViaBluetooth)
+                        it.addAllSupportedPairingMethods(pairingMethods)
                     }.build()
                 }.build()
                 services.add(bluetooth)

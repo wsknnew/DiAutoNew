@@ -127,6 +127,7 @@ class AapService : Service(), UsbReceiver.Listener {
     private var p2pReinitJob: Job? = null
     private var networkDiscovery: NetworkDiscovery? = null
     private var mediaSession: MediaSessionCompat? = null
+    private var foregroundGpsLocation: com.andrerinas.openheadunit.location.GpsLocation? = null
 
     /** Last `NetworkCallback.onAvailable` we acted on, for the debounce in [registerNetworkMonitor]. */
     private var lastNetworkAvailableKickMs: Long = 0L
@@ -386,8 +387,11 @@ class AapService : Service(), UsbReceiver.Listener {
         lastAaPlaybackIsPlaying = isPlayingFromStatus
         mediaSessionIsPlaying = isPlayingFromStatus
 
-        if (!App.provide(this).settings.syncMediaSessionWithAaMetadata) return
+        // Always sync the playback state with the actual status from the phone so the system
+        // doesn't falsely report STATE_PLAYING when audio is stopped/paused.
         updateMediaSessionState(isPlayingFromStatus)
+
+        if (!App.provide(this).settings.syncMediaSessionWithAaMetadata) return
         lastAaMediaMetadata?.let { updateMediaNotification(it) }
     }
 
@@ -397,6 +401,7 @@ class AapService : Service(), UsbReceiver.Listener {
             MediaPlayback.MediaPlaybackStatus.State.PLAYING -> true
             MediaPlayback.MediaPlaybackStatus.State.STOPPED,
             MediaPlayback.MediaPlaybackStatus.State.PAUSED -> false
+            else -> lastAaPlaybackIsPlaying ?: mediaSessionIsPlaying
         }
     }
 
@@ -447,13 +452,13 @@ class AapService : Service(), UsbReceiver.Listener {
             opts.inJustDecodeBounds = false
             opts.inSampleSize = sampleSize
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-        } catch (_: OutOfMemoryError) {
+        } catch (_: Throwable) {
             null
         }
     }
 
     private fun applyAaMediaMetadataToSession(meta: MediaPlayback.MediaMetaData, albumArt: Bitmap?) {
-        val session = mediaSession ?: return
+        if (mediaSession == null) return
         val title = when {
             meta.hasSong() && meta.song.isNotBlank() -> meta.song
             else -> getString(R.string.video)
@@ -497,6 +502,16 @@ class AapService : Service(), UsbReceiver.Listener {
                 AppLog.i("AapService: Received request to refresh all sensors")
                 // Re-send current states
                 nightModeManager?.resendCurrentState()
+                val useCarGps = App.provide(this@AapService).settings.useGpsForNavigation
+                if (useCarGps) {
+                    if (foregroundGpsLocation == null) {
+                        foregroundGpsLocation = com.andrerinas.openheadunit.location.GpsLocation(this@AapService)
+                    }
+                    foregroundGpsLocation?.start()
+                } else {
+                    foregroundGpsLocation?.stop()
+                    foregroundGpsLocation = null
+                }
             } else if (intent.action == ACTION_RESTART_AUDIO) {
                 AppLog.i("AapService: Received request to restart audio")
                 commManager.restartAudio()
@@ -1044,7 +1059,8 @@ class AapService : Service(), UsbReceiver.Listener {
 
         // Reactivate the existing MediaSession (created in onCreate, kept alive across disconnects)
         safeMediaSessionCall { it.isActive = true }
-        updateMediaSessionState(true)
+        // Initialize state to false (stopped) until the phone actually informs us that playback has started.
+        updateMediaSessionState(false)
         applyPlaceholderMediaMetadata()
 
         // Link audio focus state changes to our MediaSession state
@@ -1057,9 +1073,18 @@ class AapService : Service(), UsbReceiver.Listener {
         // real connection is beginning.
         requestPermanentAudioFocus()
 
-        // Start GpsLocationService and NightModeManager sensor tracking
-        AppLog.i("AapService: Starting GpsLocationService and NightModeManager since connection is established")
-        startService(GpsLocationService.intent(this))
+        // Start GpsLocation tracking (if Car GPS is enabled) and NightModeManager sensor tracking
+        val useCarGps = App.provide(this).settings.useGpsForNavigation
+        if (useCarGps) {
+            AppLog.i("AapService: Starting GpsLocation since Car GPS is enabled")
+            if (foregroundGpsLocation == null) {
+                foregroundGpsLocation = com.andrerinas.openheadunit.location.GpsLocation(this)
+            }
+            foregroundGpsLocation?.start()
+            startService(GpsLocationService.intent(this))
+        } else {
+            AppLog.i("AapService: Skipping GpsLocation hardware tracking (Phone GPS is default navigation source)")
+        }
         nightModeManager?.start()
 
         serviceScope.launch { commManager.startHandshake() }
@@ -1199,8 +1224,10 @@ class AapService : Service(), UsbReceiver.Listener {
         isSwitchingToAccessory.set(false)
         releaseWifiLock()
 
-        // Stop GpsLocationService and NightModeManager sensor tracking
-        AppLog.i("AapService: Stopping GpsLocationService and NightModeManager since connection is disconnected")
+        // Stop GpsLocation tracking and NightModeManager sensor tracking
+        AppLog.i("AapService: Stopping GpsLocation and NightModeManager since connection is disconnected")
+        foregroundGpsLocation?.stop()
+        foregroundGpsLocation = null
         stopService(GpsLocationService.intent(this))
         nightModeManager?.stop()
 
@@ -1886,6 +1913,8 @@ class AapService : Service(), UsbReceiver.Listener {
         mediaSession = null
         commManager.destroy()
         nightModeManager?.stop()
+        foregroundGpsLocation?.stop()
+        foregroundGpsLocation = null
         stopService(GpsLocationService.intent(this))
         try {
             unregisterReceiver(nightModeUpdateReceiver)
@@ -1999,7 +2028,7 @@ class AapService : Service(), UsbReceiver.Listener {
             }
             ACTION_STOP_WIRELESS         -> stopWirelessServer()
             ACTION_NATIVE_AA_POKE        -> {
-                val mac = intent?.getStringExtra(EXTRA_MAC)
+                val mac = intent.getStringExtra(EXTRA_MAC)
                 if (mac != null) {
                     AppLog.i("AapService: Received manual Native-AA poke request for $mac")
                     // [FIX] Reset exit flags so the subsequent connection is accepted
@@ -2083,7 +2112,7 @@ class AapService : Service(), UsbReceiver.Listener {
                 }
             }
             ACTION_NEARBY_CONNECT         -> {
-                val endpointId = intent?.getStringExtra(EXTRA_ENDPOINT_ID)
+                val endpointId = intent.getStringExtra(EXTRA_ENDPOINT_ID)
                 if (endpointId != null) {
                     AppLog.i("AapService: Connecting to Nearby endpoint $endpointId")
                     nearbyManager?.connectToEndpoint(endpointId)
@@ -2722,9 +2751,9 @@ class AapService : Service(), UsbReceiver.Listener {
             // The flag comes from the scan that finished, not from the call that built this
             // listener: the instance outlives any single request now, so capturing it here would
             // pin every later scan to the first caller's choice.
-            override fun onScanFinished(wasOneShot: Boolean) {
+            override fun onScanFinished(oneShot: Boolean) {
                 scanningState.value = false
-                if (wasOneShot) {
+                if (oneShot) {
                     AppLog.i("One-shot scan finished.")
                     return
                 }

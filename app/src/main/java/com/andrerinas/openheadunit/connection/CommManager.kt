@@ -594,7 +594,7 @@ class CommManager(
                         staticAudioFocus = true,
                         audioSinkEnabled = true,
                         btMediaLinkActive = btMediaLinkActive)) {
-                    transport.aapAudio?.requestFocusChange(
+                    transport.aapAudio.requestFocusChange(
                         AudioManager.STREAM_MUSIC,
                         AudioManager.AUDIOFOCUS_GAIN,
                         AudioManager.OnAudioFocusChangeListener { }

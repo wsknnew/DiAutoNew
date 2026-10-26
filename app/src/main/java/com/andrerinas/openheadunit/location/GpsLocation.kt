@@ -33,39 +33,71 @@ class GpsLocation constructor(private val context: Context): LocationListener {
     private var subscribedAtMs: Long = 0L
 
     private var staleFixReported = false
+    private var lastHalReconnectAtMs: Long = 0L
 
-    // Android Auto is reported to prefer the car's GPS but fall back to the phone's own once the
-    // car's signal looks interrupted, so a head unit that stops emitting looks like a head unit
-    // with no GPS. The subscription below asks for fixes on time alone, which keeps a parked unit
-    // emitting, but not every chip obliges - resend the last real fix on a timer as a backstop, the
-    // way a real GPS chip keeps outputting NMEA sentences whether or not the car moves.
-    //
-    // A resend only ever stands in for a beat the chip actually missed: while real fixes arrive on
-    // schedule it does nothing, so it duplicates nothing. And it stops once the last real fix is
-    // older than RESEND_MAX_AGE_MS - without that bound a GPS that genuinely dies mid-drive
-    // (tunnel, garage, antenna knocked loose) would be indistinguishable from a parked car forever,
-    // and Android Auto would stay pinned to the last position instead of falling back to the
-    // phone. A wrong position while moving is worse than the stall this resend exists to prevent.
+    // Secondary fallback listener for Network / Passive providers
+    private val fallbackListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            if (!requested) return
+            // Only use fallback location if real GPS fix is currently missing or older than threshold
+            val now = SystemClock.elapsedRealtime()
+            val primaryFixAgeMs = if (lastGpsFix != null) (now - lastGpsFixAtMs) else Long.MAX_VALUE
+            if (GpsLocationPolicy.shouldAcceptFallback(lastGpsFix != null, primaryFixAgeMs)) {
+                if (AppLog.LOG_VERBOSE) {
+                    AppLog.v("GpsLocation: fallback fix received from ${location.provider}")
+                }
+                LocationHolder.update(location)
+                context.sendBroadcast(LocationUpdateIntent(location).setPackage(context.packageName))
+            }
+        }
+
+        @Deprecated("Deprecated in Java")
+        @Suppress("DEPRECATION")
+        override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
+
+    // Android Auto prefers the car's GPS when advertised.
+    // If the car's GPS stops emitting, Google Maps displays "Searching for GPS...".
+    // 
+    // This runnable fulfills two critical reliability functions:
+    // 1. Resends the last known fix when parked/stationary to keep the AA stream alive.
+    // 2. Acts as a HAL stall watchdog: if no updates arrive for >15s, kicks the vendor
+    //    GPS HAL by re-subscribing, recovering from frequent AC8227L / automotive GPS stalls.
     private val periodicResend = object : Runnable {
         override fun run() {
+            if (!requested) return
+
+            val now = SystemClock.elapsedRealtime()
             val fix = lastGpsFix
-            if (fix != null && settings.useGpsForNavigation) {
-                val ageMs = SystemClock.elapsedRealtime() - lastGpsFixAtMs
-                if (ageMs > RESEND_MAX_AGE_MS) {
+
+            if (fix != null) {
+                val ageMs = now - lastGpsFixAtMs
+                if (GpsLocationPolicy.isFixStale(true, ageMs)) {
                     if (!staleFixReported) {
                         staleFixReported = true
                         AppLog.i("GpsLocation: no GPS fix for ${ageMs / 1000}s, stopping resend so the phone can fall back to its own location")
                     }
-                } else if (ageMs >= RESEND_INTERVAL_MS) {
+                } else if (GpsLocationPolicy.shouldResendFix(settings.useGpsForNavigation, true, ageMs)) {
                     val refreshed = Location(fix).apply {
                         time = System.currentTimeMillis()
                         elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
                     }
                     context.sendBroadcast(LocationUpdateIntent(refreshed).setPackage(context.packageName))
                 }
-                // ageMs < RESEND_INTERVAL_MS: a real fix just went out; nothing to stand in for.
             }
-            handler.postDelayed(this, RESEND_INTERVAL_MS)
+
+            // Vendor HAL stall watchdog: if requested and no fix arrived for > STALL_RECOVERY_THRESHOLD_MS,
+            // re-register with LocationManager to unstick Chinese head unit GPS daemons.
+            val timeSinceFix = if (lastGpsFixAtMs > 0L) (now - lastGpsFixAtMs) else (now - subscribedAtMs)
+            val timeSinceLastReconnect = now - lastHalReconnectAtMs
+            if (GpsLocationPolicy.shouldTriggerHalRecovery(timeSinceFix, timeSinceLastReconnect)) {
+                AppLog.w("GpsLocation: GPS updates stalled (${timeSinceFix / 1000}s without fix). Re-registering with LocationManager to kick hardware HAL...")
+                reconnectProviders()
+            }
+
+            handler.postDelayed(this, GpsLocationPolicy.RESEND_INTERVAL_MS)
         }
     }
 
@@ -78,25 +110,85 @@ class GpsLocation constructor(private val context: Context): LocationListener {
         val hasPermission = PermissionChecker.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PermissionChecker.PERMISSION_GRANTED
         val providerEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         if (hasPermission && providerEnabled) {
-            // No minDistance: Android ANDs the time and distance gates, so any non-zero distance
-            // stops a stationary head unit after its very first fix. Asking on time alone is what
-            // a real head unit does, and it costs nothing extra - the chip is already running.
-            //
-            // 1Hz is the automotive GPS norm and what Android Auto's navigation is tuned for.
-            // The old 5m gate delivered a fix every ~0.4-0.6s at driving speed, so this is fewer
-            // updates while moving, not more; the parked case goes from one fix ever to a steady
-            // stream, and the fan-out cost of that is paid at the sinks, not by starving nav.
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER, UPDATE_INTERVAL_MS, 0f, this
-            )
-            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            AppLog.i("Last known location:  ${location?.toString() ?: "Unknown"}")
             requested = true
             subscribedAtMs = SystemClock.elapsedRealtime()
-            handler.postDelayed(periodicResend, RESEND_INTERVAL_MS)
+            lastHalReconnectAtMs = subscribedAtMs
+
+            // 1. Seed initial location immediately from last known GPS, LocationHolder, or settings.
+            // This eliminates the 1-3 minute startup delay ("Searching for GPS...") while waiting for cold satellite lock.
+            seedInitialLocation()
+
+            // 2. Request updates from GPS_PROVIDER (Primary, 1Hz)
+            requestProviders()
+
+            handler.postDelayed(periodicResend, GpsLocationPolicy.RESEND_INTERVAL_MS)
         } else {
             AppLog.i("GpsLocation: not requesting updates, ACCESS_FINE_LOCATION granted=$hasPermission GPS_PROVIDER enabled=$providerEnabled")
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun seedInitialLocation() {
+        try {
+            val osLastGps = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            val holderLast = LocationHolder.currentLocation(context)
+            val settingsLast = settings.lastKnownLocation.takeIf { it.latitude != 0.0 && it.longitude != 0.0 }
+            
+            val seed = listOfNotNull(osLastGps, holderLast, settingsLast).maxByOrNull { it.time }
+            if (seed != null) {
+                AppLog.i("GpsLocation: Seeding initial location: lat=${seed.latitude}, lon=${seed.longitude}, provider=${seed.provider}")
+                lastGpsFix = seed
+                lastGpsFixAtMs = SystemClock.elapsedRealtime()
+                LocationHolder.update(seed)
+                val primedFix = Location(seed).apply {
+                    time = System.currentTimeMillis()
+                    elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
+                }
+                context.sendBroadcast(LocationUpdateIntent(primedFix).setPackage(context.packageName))
+            } else {
+                AppLog.i("GpsLocation: No initial location seed available yet.")
+            }
+        } catch (e: Exception) {
+            AppLog.w("GpsLocation: Failed to seed initial location: ${e.message}")
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestProviders() {
+        try {
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER, GpsLocationPolicy.UPDATE_INTERVAL_MS, 0f, this
+                )
+            }
+
+            // Also register secondary fallback listener for Network and Passive providers if enabled
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER, GpsLocationPolicy.UPDATE_INTERVAL_MS * 2, 0f, fallbackListener
+                )
+            }
+            if (locationManager.isProviderEnabled(LocationManager.PASSIVE_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.PASSIVE_PROVIDER, GpsLocationPolicy.UPDATE_INTERVAL_MS, 0f, fallbackListener
+                )
+            }
+        } catch (e: Exception) {
+            AppLog.e("GpsLocation: Error requesting location updates: ${e.message}")
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun reconnectProviders() {
+        if (!requested) return
+        lastHalReconnectAtMs = SystemClock.elapsedRealtime()
+        try {
+            locationManager.removeUpdates(this)
+            locationManager.removeUpdates(fallbackListener)
+        } catch (e: Exception) {
+            AppLog.w("GpsLocation: Error removing updates during reconnect: ${e.message}")
+        }
+        requestProviders()
     }
 
     override fun onLocationChanged(location: Location) {
@@ -150,15 +242,12 @@ class GpsLocation constructor(private val context: Context): LocationListener {
         lastGpsFixAtMs = 0L
         subscribedAtMs = 0L
         staleFixReported = false
-        locationManager.removeUpdates(this)
+        try {
+            locationManager.removeUpdates(this)
+            locationManager.removeUpdates(fallbackListener)
+        } catch (e: Exception) {
+            AppLog.w("GpsLocation: Error removing updates in stop(): ${e.message}")
+        }
         handler.removeCallbacks(periodicResend)
-    }
-
-    private companion object {
-        const val UPDATE_INTERVAL_MS = 1000L
-        const val RESEND_INTERVAL_MS = 3000L
-
-        /** How stale the last real fix may be before a resend stops standing in for it. */
-        const val RESEND_MAX_AGE_MS = 60_000L
     }
 }

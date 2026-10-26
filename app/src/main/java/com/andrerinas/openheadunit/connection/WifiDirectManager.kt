@@ -54,9 +54,9 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
         private const val NATIVE_GROUP_MODE_STANDARD_LEGACY = "standard (no 5GHz API)"
         // Native AA join recovery: if no phone joins the quiet-host group within this window,
         // tear it down and recreate a fresh one (bounded), dropping the forced 5GHz band after
-        // a couple of tries. 60s not 30s — a live BT reconnect was observed taking ~35s even
-        // when working, so 30s left no margin.
-        private const val NATIVE_JOIN_TIMEOUT_MS = 60000L
+        // a couple of tries.
+        private const val NATIVE_JOIN_TIMEOUT_MS = 35000L
+        private const val GROUP_CREATION_TIMEOUT_MS = 10000L
         private const val MAX_NATIVE_JOIN_RECREATES = 4
         private const val NATIVE_FORCE_STANDARD_AFTER = 2
     }
@@ -195,6 +195,28 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
             return@Runnable
         }
         recoverNativeGroup("no phone joined within ${NATIVE_JOIN_TIMEOUT_MS / 1000}s")
+    }
+
+    // Group creation negotiation watchdog: catches vendor Wi-Fi P2P HAL stalls where createGroup() never fires onSuccess or onFailure.
+    private val groupCreationWatchdog = Runnable {
+        if (isGroupCreatingOrCreated && !isConnected && !isGroupOwner) {
+            AppLog.w("WifiDirectManager: Group creation/negotiation timed out after ${GROUP_CREATION_TIMEOUT_MS / 1000}s. Resetting state.")
+            isGroupCreatingOrCreated = false
+            try {
+                channel = manager?.initialize(context, context.mainLooper, null)
+            } catch (e: Exception) {
+                AppLog.e("WifiDirectManager: Error reinitializing P2P channel on creation timeout: ${e.message}")
+            }
+        }
+    }
+
+    private fun armGroupCreationWatchdog() {
+        handler.removeCallbacks(groupCreationWatchdog)
+        handler.postDelayed(groupCreationWatchdog, GROUP_CREATION_TIMEOUT_MS)
+    }
+
+    private fun cancelGroupCreationWatchdog() {
+        handler.removeCallbacks(groupCreationWatchdog)
     }
 
     private var onCredentialsReady: ((ssid: String, psk: String, ip: String, bssid: String) -> Unit)? = null
@@ -1016,9 +1038,11 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
 
         lastKnownBssid = null
 
+        armGroupCreationWatchdog()
         sessionOwnership.expectSystemName()
         mgr.createGroup(ch, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
+                cancelGroupCreationWatchdog()
                 if (!sessionOwnership.created(gen)) return
                 mgr.requestGroupInfo(ch, this@WifiDirectManager)
                 AppLog.i("WifiDirectManager: P2P Group created (fresh this session).")
@@ -1028,6 +1052,7 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                 startDiscoveryLoop()
             }
             override fun onFailure(reason: Int) {
+                cancelGroupCreationWatchdog()
                 if (supersededByStop(gen, "helper create result")) return
                 if (reason == 2 && retryCount < 3) { // 2 = BUSY
                     AppLog.w("WifiDirectManager: Chip is BUSY, retrying in 2s...")
@@ -1140,29 +1165,28 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
         registerReceiverIfNeeded()
         if (!sessionOwnership.enabled || isGroupCreatingOrCreated) return
         isGroupCreatingOrCreated = true
-        var mgr = manager
-        var ch = channel
+        armGroupCreationWatchdog()
 
-        if (mgr == null || ch == null) {
-            AppLog.w("WifiDirectManager: manager ($mgr) or channel ($ch) is null. Attempting re-init...")
+        if (manager == null || channel == null) {
+            AppLog.w("WifiDirectManager: manager ($manager) or channel ($channel) is null. Attempting re-init...")
             try {
                 val newManager = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
                 val newChannel = newManager?.initialize(context, context.mainLooper, null)
                 if (newManager != null && newChannel != null) {
                     manager = newManager
                     channel = newChannel
-                    mgr = newManager
-                    ch = newChannel
                     AppLog.i("WifiDirectManager: Re-init successful and fields updated.")
                     registerReceiverIfNeeded()
                 } else {
                     AppLog.e("WifiDirectManager: Re-init failed. Cannot start Quiet Host.")
                     isGroupCreatingOrCreated = false
+                    cancelGroupCreationWatchdog()
                     return
                 }
             } catch (e: Exception) {
                 AppLog.e("WifiDirectManager: Exception during re-init", e)
                 isGroupCreatingOrCreated = false
+                cancelGroupCreationWatchdog()
                 return
             }
         }
@@ -1178,12 +1202,14 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                 showToast("Native AA requires Wi-Fi. Please turn it on.")
                 // We return for now, the user must turn it on. In the future we could open settings.
                 isGroupCreatingOrCreated = false
+                cancelGroupCreationWatchdog()
                 return
             }
             // Wait a bit for WiFi to wake up
             postSessionDelayed({
                 if (isGroupCreatingOrCreated) {
                     isGroupCreatingOrCreated = false
+                    cancelGroupCreationWatchdog()
                     startNativeAaQuietHost()
                 }
             }, 2000L)
@@ -1279,8 +1305,10 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                 AppLog.i("WifiDirectManager: Requesting Native AA P2P group on $bandLabel band.${if (force24) " Forced by debug setting." else ""}")
                 sessionOwnership.expect(networkName)
                 ownershipPrefs.edit().putString("network_name", networkName).apply()
+                armGroupCreationWatchdog()
                 mgr.createGroup(ch, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
+                        cancelGroupCreationWatchdog()
                         if (!sessionOwnership.created(gen)) return
                         AppLog.i("WifiDirectManager: $bandLabel createGroup SUCCESS!")
                         nativeGroupCreationMode =
@@ -1292,6 +1320,7 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                         }, 1000L)
                     }
                     override fun onFailure(reason: Int) {
+                        cancelGroupCreationWatchdog()
                         if (supersededByStop(gen, "native create result")) return
                         val reasonStr = getP2pErrorString(reason)
                         if (retryCount < MAX_NATIVE_5GHZ_CREATE_RETRIES) {
@@ -1389,8 +1418,10 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
         val gen = generation
         if (supersededByStop(gen, "standard create")) return
         sessionOwnership.expectSystemName()
+        armGroupCreationWatchdog()
         mgr.createGroup(ch, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
+                cancelGroupCreationWatchdog()
                 if (!sessionOwnership.created(gen)) return
                 mgr.requestGroupInfo(ch, this@WifiDirectManager)
                 AppLog.i("WifiDirectManager: Standard createGroup SUCCESS!")
@@ -1409,6 +1440,7 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                 }, 1000L)
             }
             override fun onFailure(reason: Int) {
+                cancelGroupCreationWatchdog()
                 if (supersededByStop(gen, "create result")) return
                 val reasonStr = getP2pErrorString(reason)
                 if (reason == 2 && retryCount < MAX_NATIVE_STANDARD_CREATE_RETRIES) {

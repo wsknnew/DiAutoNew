@@ -1421,7 +1421,8 @@ class VideoDecoder(
             }
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-                @Suppress("DEPRECATION") inputBuffers = codec?.inputBuffers
+                @Suppress("DEPRECATION")
+                inputBuffers = codec?.inputBuffers
             }
 
             running = true

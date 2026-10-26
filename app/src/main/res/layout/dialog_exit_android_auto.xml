@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dialogContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_exit_dialog"
+    android:orientation="vertical"
+    android:padding="22dp">
+
+    <!-- Dialog Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_android_auto"
+            android:tint="@color/da_accent" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dialogTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/exit_dialog_title"
+                android:textColor="@color/da_text"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/dialogSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/exit_dialog_subtitle"
+                android:textColor="@color/da_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Options Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:orientation="vertical">
+
+        <!-- Option 1: Stop Connection -->
+        <LinearLayout
+            android:id="@+id/optionStop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_exit_option_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="72dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/bg_exit_badge_red">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_stop"
+                    android:tint="#FF5252" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/exit_dialog_stop"
+                    android:textColor="@color/da_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/exit_dialog_stop_desc"
+                    android:textColor="@color/da_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:alpha="0.6"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/da_muted" />
+        </LinearLayout>
+
+        <!-- Option 2: Picture-in-Picture -->
+        <LinearLayout
+            android:id="@+id/optionPip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_exit_option_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="72dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/bg_exit_badge_cyan">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_pip"
+                    android:tint="#4DD0E1" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/exit_dialog_pip"
+                    android:textColor="@color/da_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/exit_dialog_pip_desc"
+                    android:textColor="@color/da_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:alpha="0.6"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/da_muted" />
+        </LinearLayout>
+
+        <!-- Option 3: Move to Background -->
+        <LinearLayout
+            android:id="@+id/optionBackground"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_exit_option_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="72dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/bg_exit_badge_indigo">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_home"
+                    android:tint="#82B1FF" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/exit_dialog_background"
+                    android:textColor="@color/da_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/exit_dialog_background_desc"
+                    android:textColor="@color/da_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:alpha="0.6"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/da_muted" />
+        </LinearLayout>
+
+        <!-- Option 4: Quick Settings -->
+        <LinearLayout
+            android:id="@+id/optionSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_exit_option_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="72dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <FrameLayout
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/bg_exit_badge_amber">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_settings_quick"
+                    android:tint="#FFD54F" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/exit_dialog_settings"
+                    android:textColor="@color/da_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/exit_dialog_settings_desc"
+                    android:textColor="@color/da_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:alpha="0.6"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/da_muted" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Dismiss Button -->
+    <TextView
+        android:id="@+id/btnDismiss"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_exit_dismiss_button"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="@string/exit_dialog_dismiss"
+        android:textColor="@color/da_text"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

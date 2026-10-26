@@ -12,6 +12,45 @@ object MsgType {
     }
 
     fun name(type: Int, channel: Int): String {
+        if (channel != Channel.ID_CTR) {
+            when (type) {
+                Media.MsgType.MEDIA_MESSAGE_DATA_VALUE -> return "Media Data"
+                Media.MsgType.MEDIA_MESSAGE_CODEC_CONFIG_VALUE -> return "Codec Config"
+                Media.MsgType.MEDIA_MESSAGE_SETUP_VALUE -> return "Media Setup Request"
+                Media.MsgType.MEDIA_MESSAGE_START_VALUE -> {
+                    return when (channel) {
+                        Channel.ID_SEN -> "Sensor Start Request"
+                        Channel.ID_INP -> "Input Event"
+                        Channel.ID_MPB -> "Media Playback Status"
+                        else -> "Media Start Request"
+                    }
+                }
+                Media.MsgType.MEDIA_MESSAGE_STOP_VALUE -> {
+                    return when (channel) {
+                        Channel.ID_SEN -> "Sensor Start Response"
+                        Channel.ID_INP -> "Input Binding Request"
+                        Channel.ID_MPB -> "Media Playback Status"
+                        else -> "Media Stop Request"
+                    }
+                }
+                Media.MsgType.MEDIA_MESSAGE_CONFIG_VALUE -> {
+                    return when (channel) {
+                        Channel.ID_SEN -> "Sensor Event"
+                        Channel.ID_INP -> "Input Binding Response"
+                        Channel.ID_MPB -> "Media Playback Status"
+                        else -> "Media Config Response"
+                    }
+                }
+                Media.MsgType.MEDIA_MESSAGE_ACK_VALUE -> return "Codec/Media Data Ack"
+                Media.MsgType.MEDIA_MESSAGE_MICROPHONE_REQUEST_VALUE -> return "Mic Start/Stop Request"
+                Media.MsgType.MEDIA_MESSAGE_MICROPHONE_RESPONSE_VALUE -> return "Mic Response"
+                Media.MsgType.MEDIA_MESSAGE_VIDEO_FOCUS_REQUEST_VALUE -> return "Video Focus Request"
+                Media.MsgType.MEDIA_MESSAGE_VIDEO_FOCUS_NOTIFICATION_VALUE -> return "Video Focus Notification"
+                Media.MsgType.MEDIA_MESSAGE_UPDATE_UI_CONFIG_REQUEST_VALUE -> return "Update UI Config Request"
+                Media.MsgType.MEDIA_MESSAGE_UPDATE_UI_CONFIG_REPLY_VALUE -> return "Update UI Config Reply"
+                Media.MsgType.MEDIA_MESSAGE_AUDIO_UNDERFLOW_NOTIFICATION_VALUE -> return "Audio Underflow Notification"
+            }
+        }
 
         when (type) {
             Control.ControlMsgType.MESSAGE_VERSION_REQUEST_VALUE -> return "Version Request"
@@ -39,43 +78,6 @@ object MsgType {
             Control.ControlMsgType.MESSAGE_CALL_AVAILABILITY_STATUS_VALUE -> return "Call Availability Status"
             Control.ControlMsgType.MESSAGE_USER_SWITCH_RESPONSE_VALUE -> return "User Switch Response"
             Control.ControlMsgType.MESSAGE_SERVICE_DISCOVERY_UPDATE_VALUE -> return "Service Discovery Update"
-
-            Media.MsgType.MEDIA_MESSAGE_DATA_VALUE -> return "Media Data"
-            Media.MsgType.MEDIA_MESSAGE_CODEC_CONFIG_VALUE -> return "Codec Config"
-            Media.MsgType.MEDIA_MESSAGE_SETUP_VALUE -> return "Media Setup Request"
-            Media.MsgType.MEDIA_MESSAGE_START_VALUE -> {
-                return when (channel) {
-                    Channel.ID_SEN -> "Sensor Start Request"
-                    Channel.ID_INP -> "Input Event"
-                    Channel.ID_MPB -> "Media Playback Status"
-                    else -> "Media Start Request"
-                }
-            }
-            Media.MsgType.MEDIA_MESSAGE_STOP_VALUE -> {
-                return when (channel) {
-                    Channel.ID_SEN -> "Sensor Start Response"
-                    Channel.ID_INP -> "Input Binding Request"
-                    Channel.ID_MPB -> "Media Playback Status"
-                    else -> "Media Stop Request"
-                }
-            }
-            Media.MsgType.MEDIA_MESSAGE_CONFIG_VALUE -> {
-                return when (channel) {
-                    Channel.ID_SEN -> "Sensor Event"
-                    Channel.ID_INP -> "Input Binding Response"
-                    Channel.ID_MPB -> "Media Playback Status"
-                    else -> "Media Config Response"
-                }
-            }
-            Media.MsgType.MEDIA_MESSAGE_ACK_VALUE -> return "Codec/Media Data Ack"
-            Media.MsgType.MEDIA_MESSAGE_MICROPHONE_REQUEST_VALUE -> return "Mic Start/Stop Request"
-            Media.MsgType.MEDIA_MESSAGE_MICROPHONE_RESPONSE_VALUE -> return "Mic Response"
-            Media.MsgType.MEDIA_MESSAGE_VIDEO_FOCUS_REQUEST_VALUE -> return "Video Focus Request"
-            Media.MsgType.MEDIA_MESSAGE_VIDEO_FOCUS_NOTIFICATION_VALUE -> return "Video Focus Notification"
-            Media.MsgType.MEDIA_MESSAGE_UPDATE_UI_CONFIG_REQUEST_VALUE -> return "Update UI Config Request"
-            Media.MsgType.MEDIA_MESSAGE_UPDATE_UI_CONFIG_REPLY_VALUE -> return "Update UI Config Reply"
-            Media.MsgType.MEDIA_MESSAGE_AUDIO_UNDERFLOW_NOTIFICATION_VALUE -> return "Audio Underflow Notification"
-
             Control.ControlMsgType.MESSAGE_UNEXPECTED_MESSAGE_VALUE -> return "Unexpected Message"
             Control.ControlMsgType.MESSAGE_FRAMING_ERROR_VALUE -> return "Framing Error Notification"
         }

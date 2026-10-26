@@ -32,11 +32,13 @@ internal object BydCarServerTransport {
         check(binder.interfaceDescriptor == INTERFACE) { "Unexpected property-service interface" }
         val stub = Class.forName("$INTERFACE\$Stub", true, loader)
         val proxy = stub.getMethod("asInterface", IBinder::class.java).invoke(null, binder)
+            ?: error("Car server interface stub returned null proxy")
         runCatching { proxy.javaClass.getMethod("setPackageInfo", String::class.java, Int::class.javaPrimitiveType)
             .invoke(proxy, context.packageName, android.os.Process.myPid()) }
-        valueClass = Class.forName("com.byd.car.property.CarPropertyValue", true, loader)
-        valueCtor = valueClass!!.getConstructor(String::class.java, Any::class.java)
-        val arrayClass = ReflectArray.newInstance(valueClass, 0).javaClass
+        val cls = Class.forName("com.byd.car.property.CarPropertyValue", true, loader)
+        valueClass = cls
+        valueCtor = cls.getConstructor(String::class.java, Any::class.java)
+        val arrayClass = ReflectArray.newInstance(cls, 0).javaClass
         setMethod = proxy.javaClass.getMethod("setProperties", arrayClass)
         readMethod = proxy.javaClass.getMethod("getProperty", String::class.java)
         service = proxy
@@ -59,7 +61,7 @@ internal object BydCarServerTransport {
     /** Returns the completed property-handler status; 0 still does not prove rendering. */
     fun write(context: Context, key: String, value: Int): Int {
         val proxy = ensureService(context)
-        val values = ReflectArray.newInstance(valueClass, 1)
+        val values = ReflectArray.newInstance(valueClass!!, 1)
         ReflectArray.set(values, 0, valueCtor!!.newInstance(key, value as Any))
         val result = setMethod!!.invoke(proxy, values)
         val code = result.javaClass.getField("code").getInt(result)

@@ -120,6 +120,144 @@
                 android:textColor="@color/da_muted" />
         </LinearLayout>
 
+        <!-- Connection Quick Glance Bar (Wi-Fi Network & Bluetooth) -->
+        <LinearLayout
+            android:id="@+id/quick_glance_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <!-- Wi-Fi Network Glance Card -->
+            <LinearLayout
+                android:id="@+id/glance_wifi_card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="58dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/da_card"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp">
+
+                <ImageView
+                    android:id="@+id/glance_wifi_icon"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_wifi"
+                    app:tint="@color/da_accent"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="14dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_wifi_title"
+                        android:textSize="11sp"
+                        android:textColor="@color/da_muted"
+                        android:letterSpacing="0.08"
+                        android:textAllCaps="true"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/glance_wifi_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/glance_wifi_disconnected"
+                        android:textSize="15sp"
+                        android:textColor="@color/da_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/glance_wifi_dot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/shape_dot_grey"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <!-- Bluetooth Glance Card -->
+            <LinearLayout
+                android:id="@+id/glance_bluetooth_card"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="58dp"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/da_card"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp">
+
+                <ImageView
+                    android:id="@+id/glance_bluetooth_icon"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_da_bluetooth"
+                    app:tint="@color/da_accent"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="14dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/glance_bt_title"
+                        android:textSize="11sp"
+                        android:textColor="@color/da_muted"
+                        android:letterSpacing="0.08"
+                        android:textAllCaps="true"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/glance_bluetooth_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/glance_bt_disconnected"
+                        android:textSize="15sp"
+                        android:textColor="@color/da_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/glance_bluetooth_dot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/shape_dot_grey"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- Main Cockpit Split Layout: Hero Card (Left 60%) + Quick Actions Bento (Right 40%) -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -127,7 +265,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:baselineAligned="false"
-            android:paddingTop="20dp"
+            android:paddingTop="14dp"
             android:paddingBottom="12dp">
 
             <!-- LEFT: Hero Driver Card -->

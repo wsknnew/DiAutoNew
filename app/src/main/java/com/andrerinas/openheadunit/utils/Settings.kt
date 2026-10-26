@@ -115,9 +115,22 @@ class Settings(private val context: Context) {
         }
 
     var useGpsForNavigation: Boolean
-        get() = prefs.getBoolean("gps-navigation", true)
+        get() {
+            if (!prefs.getBoolean("gps-phone-default-migrated", false)) {
+                // Default to phone GPS (false) for all users and aftermarket head units
+                prefs.edit()
+                    .putBoolean("gps-phone-default-migrated", true)
+                    .putBoolean("gps-navigation", false)
+                    .apply()
+                return false
+            }
+            return prefs.getBoolean("gps-navigation", false)
+        }
         set(value) {
-            prefs.edit().putBoolean("gps-navigation", value).apply()
+            prefs.edit()
+                .putBoolean("gps-phone-default-migrated", true)
+                .putBoolean("gps-navigation", value)
+                .apply()
         }
 
     var bydNavigationEnabled: Boolean
@@ -745,7 +758,16 @@ class Settings(private val context: Context) {
 
     // Attach dummy Equalizer effect to AudioTrack/AudioMixer session to force HW DSP hardware routing
     var attachHwDspEqualizer: Boolean
-        get() = prefs.getBoolean("attach_hw_dsp_equalizer", false)
+        get() {
+            if (!prefs.contains("attach_hw_dsp_equalizer")) {
+                // Default to true for aftermarket head units to activate the hardware DSP chip,
+                // but keep false on BYD vehicles which manage audio routing natively.
+                return com.andrerinas.openheadunit.decoder.HwDspPolicy.defaultAttachHwDsp(
+                    com.andrerinas.openheadunit.hud.BydVehicleProbe.appliesTo()
+                )
+            }
+            return prefs.getBoolean("attach_hw_dsp_equalizer", false)
+        }
         set(value) { prefs.edit().putBoolean("attach_hw_dsp_equalizer", value).apply() }
 
     var micNoiseSuppressor: Boolean

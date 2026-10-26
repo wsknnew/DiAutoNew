@@ -863,10 +863,12 @@ class AapTransport(
         send(VideoFocusEvent(gain = true, unsolicited = true, channel = Channel.ID_CLUSTER_VID))
     }
 
+    private val micBufferPool = com.andrerinas.openheadunit.decoder.MicBufferPool(16)
+
     override fun onMicDataAvailable(mic_buf: ByteArray, mic_audio_len: Int) {
         if (mic_audio_len > 64) {  // If we read at least 64 bytes of audio data
             val length = mic_audio_len + 12  // 4 header + 8 timestamp + PCM
-            val data = ByteArray(length)
+            val data = micBufferPool.obtain(length)
             data[0] = Channel.ID_MIC.toByte()
             data[1] = 0x0b
             // Timestamp at byte 4 so the full 8 bytes are inside the encrypted payload (HEADER_SIZE=4)

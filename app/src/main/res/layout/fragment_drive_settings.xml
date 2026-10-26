@@ -216,6 +216,61 @@
                 android:focusable="false" />
         </LinearLayout>
 
+        <!-- GPS Navigation Source Toggle (Car GPS vs Phone GPS) -->
+        <LinearLayout
+            android:id="@+id/da_gps_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="84dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:background="@drawable/da_card"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_directions_car"
+                app:tint="@color/da_accent"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="18dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gps_for_navigation"
+                    android:textSize="18sp"
+                    android:textColor="@color/da_text"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/gps_routing_desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/gps_for_navigation_quick_desc"
+                    android:textSize="14sp"
+                    android:textColor="@color/da_muted" />
+            </LinearLayout>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_gps_navigation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:focusable="false" />
+        </LinearLayout>
+
         <!-- 4. Automatic Connection -->
         <LinearLayout
             android:id="@+id/da_automation"

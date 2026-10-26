@@ -108,9 +108,9 @@
     <string name="refresh" translatable="false">Refresh</string>
 
     <!-- Release & Custom Edition Info -->
-    <string name="about_release_badge" translatable="false">Release v1.0</string>
+    <string name="about_release_badge" translatable="false">Release v1.1</string>
     <string name="about_modified_info" translatable="false">Custom Release Edition</string>
-    <string name="about_release_date" translatable="false">Release Date: October 24, 2026</string>
+    <string name="about_release_date" translatable="false">Release Date: October 26, 2026</string>
 
     <!-- UI/UX Enhancements -->
     <string name="theme_dark_enabled" translatable="false">Dark Theme enabled</string>
@@ -160,4 +160,25 @@
     <string name="update_changelog_header" translatable="false">What\'s New:</string>
     <string name="update_installing" translatable="false">Installing update…</string>
     <string name="later" translatable="false">Later</string>
+
+    <!-- Exit Dialog Polish -->
+    <string name="exit_dialog_subtitle" translatable="false">Select an action for your active projection session</string>
+    <string name="exit_dialog_stop_desc" translatable="false">Disconnect phone and close Android Auto</string>
+    <string name="exit_dialog_pip_desc" translatable="false">Keep projection active in a floating window</string>
+    <string name="exit_dialog_background_desc" translatable="false">Return to car apps while staying connected</string>
+    <string name="exit_dialog_settings_desc" translatable="false">Tune display, audio, GPS, and connection</string>
+    <string name="exit_dialog_dismiss" translatable="false">Stay in Android Auto</string>
+
+    <!-- Navigation GPS Source -->
+    <string name="gps_for_navigation_quick_desc" translatable="false">Disabled: Phone GPS (Default). Enabled: Car head unit GPS.</string>
+    <string name="gps_source_car_enabled" translatable="false">Using Car GPS for navigation</string>
+    <string name="gps_source_phone_enabled" translatable="false">Using Phone GPS for navigation (Default)</string>
+
+    <!-- Quick Glance Connectivity Bar -->
+    <string name="glance_wifi_title" translatable="false">Wi-Fi Network</string>
+    <string name="glance_wifi_disconnected" translatable="false">Not Connected</string>
+    <string name="glance_wifi_off" translatable="false">Wi-Fi Disabled</string>
+    <string name="glance_bt_title" translatable="false">Bluetooth Device</string>
+    <string name="glance_bt_disconnected" translatable="false">No Device Connected</string>
+    <string name="glance_bt_off" translatable="false">Bluetooth Disabled</string>
 </resources>

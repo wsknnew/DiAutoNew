@@ -95,7 +95,11 @@ internal object HotspotNetworkProbe {
             .map { name ->
                 val result = try {
                     val value = cm.javaClass.getMethod(name).invoke(cm)
-                    (value as? Array<*>)?.joinToString(prefix = "[", postfix = "]") ?: value.toString()
+                    when (value) {
+                        null -> "null"
+                        is Array<*> -> value.joinToString(prefix = "[", postfix = "]")
+                        else -> value.toString()
+                    }
                 } catch (t: Throwable) {
                     val cause = (t as? java.lang.reflect.InvocationTargetException)?.targetException ?: t
                     "unavailable (${cause.javaClass.simpleName})"

@@ -1,9 +1,14 @@
 package com.andrerinas.openheadunit.main
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -41,6 +46,12 @@ class HomeFragment : Fragment() {
     private var activeDialog: androidx.appcompat.app.AlertDialog? = null
     private var hasAttemptedAutoConnectOnOpen = false
     private var autoConnectJob: Job? = null
+
+    private val glanceReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateQuickGlanceUi()
+        }
+    }
 
     private val bluetoothPermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -164,16 +175,73 @@ class HomeFragment : Fragment() {
             ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java))
         }
 
+        // Quick Glance Cards (Wi-Fi & Bluetooth)
+        view.findViewById<View?>(R.id.glance_wifi_card)?.setOnClickListener {
+            cancelAutoConnectCountdown()
+            HotspotConnectionDialog.show(childFragmentManager)
+        }
+        view.findViewById<View?>(R.id.glance_wifi_card)?.setOnLongClickListener {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_WIFI_SETTINGS))
+            } catch (_: Exception) {
+                try { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) } catch (_: Exception) {}
+            }
+            true
+        }
+
+        view.findViewById<View?>(R.id.glance_bluetooth_card)?.setOnClickListener {
+            cancelAutoConnectCountdown()
+            if (checkBluetoothPermission()) selectPhone()
+            else requestBluetoothAndConnect()
+        }
+        view.findViewById<View?>(R.id.glance_bluetooth_card)?.setOnLongClickListener {
+            openBluetoothSettings()
+            true
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    updateQuickGlanceUi()
+                    delay(3000)
+                }
+            }
+        }
+
         updateDeviceUi()
+        updateQuickGlanceUi()
         if (state == null) {
             maybeAutoConnectOnOpen()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter().apply {
+            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        }
+        try {
+            ContextCompat.registerReceiver(requireContext(), glanceReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        } catch (_: Exception) {}
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            requireContext().unregisterReceiver(glanceReceiver)
+        } catch (_: Exception) {}
     }
 
     override fun onResume() {
         super.onResume()
         view?.let { updateAudioRoutingUi(it) }
         updateDeviceUi()
+        updateQuickGlanceUi()
         updateConnectionStateUi(app.commManager.connectionState.value)
     }
 
@@ -298,6 +366,106 @@ class HomeFragment : Fragment() {
                 cancelAutoConnectCountdown()
                 if (checkBluetoothPermission()) selectPhone()
                 else requestBluetoothAndConnect()
+            }
+        }
+    }
+
+    private fun updateQuickGlanceUi() {
+        val currentView = view ?: return
+        val ctx = context ?: return
+
+        // 1. Wi-Fi status & connected network name (SSID)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val netStatus = HotspotConnectionHelper.getNetworkStatus(ctx)
+            if (!isAdded) return@launch
+
+            val wifiStatusText = currentView.findViewById<TextView?>(R.id.glance_wifi_status) ?: return@launch
+            val wifiIcon = currentView.findViewById<ImageView?>(R.id.glance_wifi_icon) ?: return@launch
+            val wifiDot = currentView.findViewById<ImageView?>(R.id.glance_wifi_dot) ?: return@launch
+
+            val wm = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val isWifiEnabled = try { wm?.isWifiEnabled == true } catch (_: Exception) { true }
+
+            when {
+                !isWifiEnabled -> {
+                    wifiStatusText.setText(R.string.glance_wifi_off)
+                    wifiStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
+                    wifiIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.da_muted)
+                    )
+                    wifiDot.setImageResource(R.drawable.shape_dot_grey)
+                }
+                netStatus.isWifiConnected -> {
+                    val displayName = netStatus.ssid?.takeIf { it.isNotBlank() }
+                        ?: if (netStatus.isPhoneHotspot) getString(R.string.phone_hotspot)
+                        else getString(R.string.wifi_network_connected)
+                    wifiStatusText.text = displayName
+                    wifiStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.da_text))
+                    wifiIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.da_accent)
+                    )
+                    wifiDot.setImageResource(R.drawable.shape_dot_green)
+                }
+                else -> {
+                    wifiStatusText.setText(R.string.glance_wifi_disconnected)
+                    wifiStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
+                    wifiIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.da_muted)
+                    )
+                    wifiDot.setImageResource(R.drawable.shape_dot_grey)
+                }
+            }
+        }
+
+        // 2. Bluetooth connected device name
+        val btStatusText = currentView.findViewById<TextView?>(R.id.glance_bluetooth_status) ?: return
+        val btIcon = currentView.findViewById<ImageView?>(R.id.glance_bluetooth_icon) ?: return
+        val btDot = currentView.findViewById<ImageView?>(R.id.glance_bluetooth_dot) ?: return
+
+        val adapter = BluetoothHelper.getBluetoothAdapter(ctx)
+        val isBtEnabled = try { adapter?.isEnabled == true } catch (_: Exception) { false }
+
+        when {
+            !isBtEnabled -> {
+                btStatusText.setText(R.string.glance_bt_off)
+                btStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
+                btIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(ctx, R.color.da_muted)
+                )
+                btDot.setImageResource(R.drawable.shape_dot_grey)
+            }
+            else -> {
+                val connectedDevice = BluetoothHelper.getConnectedBluetoothDevice(ctx)
+                if (connectedDevice != null) {
+                    val name = try {
+                        connectedDevice.name?.takeIf { it.isNotBlank() } ?: connectedDevice.address
+                    } catch (_: SecurityException) {
+                        connectedDevice.address
+                    }
+                    btStatusText.text = name
+                    btStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.da_text))
+                    btIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.da_accent)
+                    )
+                    btDot.setImageResource(R.drawable.shape_dot_green)
+                } else {
+                    val preferred = getPreferredDevice()
+                    if (preferred != null) {
+                        val name = try {
+                            preferred.name?.takeIf { it.isNotBlank() } ?: preferred.address
+                        } catch (_: SecurityException) {
+                            preferred.address
+                        }
+                        btStatusText.text = "$name (${getString(R.string.disconnected)})"
+                    } else {
+                        btStatusText.setText(R.string.glance_bt_disconnected)
+                    }
+                    btStatusText.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
+                    btIcon.imageTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.da_muted)
+                    )
+                    btDot.setImageResource(R.drawable.shape_dot_grey)
+                }
             }
         }
     }

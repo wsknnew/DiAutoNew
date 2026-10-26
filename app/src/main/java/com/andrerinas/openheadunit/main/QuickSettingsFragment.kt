@@ -190,6 +190,25 @@ class QuickSettingsFragment : DialogFragment() {
         items.add(SettingItem.CategoryHeader("system", R.string.category_automation))
 
         items.add(SettingItem.ToggleSettingEntry(
+            stableId = "gpsNavigation",
+            nameResId = R.string.gps_for_navigation,
+            descriptionResId = R.string.gps_for_navigation_quick_desc,
+            isChecked = settings.useGpsForNavigation,
+            onCheckedChanged = { isChecked ->
+                settings.useGpsForNavigation = isChecked
+                settings.commit()
+                notifyChange(sensorRefresh = true)
+                updateSettingsList()
+                val toastMsg = if (isChecked) {
+                    R.string.gps_source_car_enabled
+                } else {
+                    R.string.gps_source_phone_enabled
+                }
+                Toast.makeText(requireContext(), toastMsg, Toast.LENGTH_SHORT).show()
+            }
+        ))
+
+        items.add(SettingItem.ToggleSettingEntry(
             stableId = "fakeSpeed",
             nameResId = R.string.fake_speed_title,
             descriptionResId = R.string.fake_speed_description,
