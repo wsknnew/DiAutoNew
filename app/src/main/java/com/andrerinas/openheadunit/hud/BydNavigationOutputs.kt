@@ -57,7 +57,7 @@ object BydNavigationOutputs {
     }
 
     @Synchronized internal fun currentForDiagnostic(context: Context): BydGuidance? =
-        if ((context.packageName == "com.andrerinas.headunitrevived" || context.packageName.endsWith(".bydhudtest")) && active && Settings(context).bydNavigationEnabled) latest.current() else null
+        if ((context.packageName == "com.wsknnew.diautonew" || context.packageName == "com.andrerinas.headunitrevived" || context.packageName.endsWith(".bydhudtest")) && active && Settings(context).bydNavigationEnabled) latest.current() else null
 
     @Synchronized internal fun update(value: BydGuidance?) { if (active) latest.update(value) }
     @Synchronized fun stop() { active = false; latest.update(null) }

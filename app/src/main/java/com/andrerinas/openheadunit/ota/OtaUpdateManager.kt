@@ -82,21 +82,37 @@ object OtaUpdateManager {
             val changelog = json.optString("body", "No changelog provided.")
             val publishedAt = json.optString("published_at", "")
 
-            // Find APK asset
+            // Find APK asset (prefer matching package name)
             val assets = json.optJSONArray("assets")
             var apkUrl: String? = null
             var apkSize = 0L
 
             if (assets != null) {
+                var preferredUrl: String? = null
+                var preferredSize = 0L
+                var fallbackUrl: String? = null
+                var fallbackSize = 0L
+                val currentPkg = try { App.instance?.packageName ?: "com.wsknnew.diautonew" } catch (e: Exception) { "com.wsknnew.diautonew" }
+
                 for (i in 0 until assets.length()) {
                     val asset = assets.getJSONObject(i)
                     val name = asset.optString("name", "")
                     if (name.endsWith(".apk", ignoreCase = true)) {
-                        apkUrl = asset.optString("browser_download_url", "")
-                        apkSize = asset.optLong("size", 0L)
-                        break
+                        val downloadUrl = asset.optString("browser_download_url", "")
+                        val size = asset.optLong("size", 0L)
+                        if (name.contains(currentPkg, ignoreCase = true) || name.contains("diautonew", ignoreCase = true)) {
+                            preferredUrl = downloadUrl
+                            preferredSize = size
+                            break
+                        }
+                        if (fallbackUrl == null) {
+                            fallbackUrl = downloadUrl
+                            fallbackSize = size
+                        }
                     }
                 }
+                apkUrl = preferredUrl ?: fallbackUrl
+                apkSize = if (preferredUrl != null) preferredSize else fallbackSize
             }
 
             if (apkUrl.isNullOrBlank()) {

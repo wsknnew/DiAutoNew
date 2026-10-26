@@ -68,7 +68,7 @@ android {
 
     defaultConfig {
         // Preserve upgrade compatibility and existing DiLink pairing/calibration.
-        applicationId = "com.andrerinas.headunitrevived"
+        applicationId = "com.wsknnew.diautonew"
         minSdk = 16
         targetSdk = 36
         versionCode = 1100
