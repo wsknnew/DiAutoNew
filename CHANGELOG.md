@@ -1,3 +1,15 @@
+# DiAuto 1.2.1 — 2026-10-27
+
+- **Fix Multiple Device Streaming Bug on Song Transitions:**
+  - Added 1500ms media stop debounce in `AapAudio` to prevent audio sink and track teardown during track boundaries (gapless/crossfade transitions).
+  - Implemented `AudioFocusPolicy` mapping audio focus `RELEASE` requests to `STATE_LOSS_TRANSIENT` to keep phone audio routing intact within Android Auto.
+  - Dynamically resolved Bluetooth MAC in `ServiceDiscoveryResponse` to announce HFP pairing, suppressing redundant phone Bluetooth A2DP audio playback alongside Android Auto.
+  - Debounced media session state changes in `AapService` to eliminate rapid state flapping.
+- **Seamless In-Place OTA Self-Updates:**
+  - Modernized `OtaUpdateManager` with a resilient 3-tier installation pipeline (detached root/Shizuku install with auto-restart, `PackageInstaller.Session` in-memory streaming, and standard fallback).
+  - Added `OtaInstallReceiver` for package installation callbacks and automatic post-update app relaunch.
+  - Committed unified permanent release keystore `headunit-release-key.jks` across both debug and release configurations, eliminating `INSTALL_FAILED_UPDATE_INCOMPATIBLE` signature mismatch errors for all subsequent releases.
+
 # DiAuto 1.2 — 2026-10-27
 
 - **Dual 1-Tap Cockpit Dashboard:** Main screen redesigned with balanced side-by-side hero cards for Wireless Android Auto and USB Android Auto. Both now connect with a single tap directly from the standby dashboard without navigating submenus.
