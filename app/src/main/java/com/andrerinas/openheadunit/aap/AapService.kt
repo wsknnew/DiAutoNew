@@ -20,7 +20,9 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.Parcel
 import android.os.Parcelable
 import android.os.PowerManager
@@ -309,7 +311,35 @@ class AapService : Service(), UsbReceiver.Listener {
 
     private val commManager get() = App.provide(this).commManager
 
-    fun updateMediaSessionState(isPlaying: Boolean) {
+    private var pendingMediaSessionStopRunnable: Runnable? = null
+    private val mediaSessionHandler = Handler(Looper.getMainLooper())
+
+    fun updateMediaSessionState(isPlaying: Boolean, debounceStop: Boolean = false) {
+        if (isPlaying) {
+            pendingMediaSessionStopRunnable?.let {
+                mediaSessionHandler.removeCallbacks(it)
+                pendingMediaSessionStopRunnable = null
+            }
+            applyMediaSessionState(true)
+        } else if (debounceStop) {
+            if (pendingMediaSessionStopRunnable == null) {
+                val runnable = Runnable {
+                    pendingMediaSessionStopRunnable = null
+                    applyMediaSessionState(false)
+                }
+                pendingMediaSessionStopRunnable = runnable
+                mediaSessionHandler.postDelayed(runnable, 1200L)
+            }
+        } else {
+            pendingMediaSessionStopRunnable?.let {
+                mediaSessionHandler.removeCallbacks(it)
+                pendingMediaSessionStopRunnable = null
+            }
+            applyMediaSessionState(false)
+        }
+    }
+
+    private fun applyMediaSessionState(isPlaying: Boolean) {
         mediaSessionIsPlaying = isPlaying
         var actions = PlaybackStateCompat.ACTION_STOP or
                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
@@ -389,7 +419,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
         // Always sync the playback state with the actual status from the phone so the system
         // doesn't falsely report STATE_PLAYING when audio is stopped/paused.
-        updateMediaSessionState(isPlayingFromStatus)
+        updateMediaSessionState(isPlayingFromStatus, debounceStop = !isPlayingFromStatus)
 
         if (!App.provide(this).settings.syncMediaSessionWithAaMetadata) return
         lastAaMediaMetadata?.let { updateMediaNotification(it) }
@@ -1065,7 +1095,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
         // Link audio focus state changes to our MediaSession state
         commManager.onAudioFocusStateChanged = { isPlaying ->
-            updateMediaSessionState(isPlaying)
+            updateMediaSessionState(isPlaying, debounceStop = !isPlaying)
         }
 
         // Acquire permanent audio focus just before starting the AA handshake so we

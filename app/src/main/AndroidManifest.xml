@@ -369,5 +369,12 @@
             android:exported="true"
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+        <receiver
+            android:name=".ota.OtaInstallReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.wsknnew.diautonew.ota.INSTALL_STATUS" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

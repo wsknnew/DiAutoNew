@@ -72,6 +72,8 @@ internal class AapAudio(
     private val unduckRunnable = Runnable {
         unduckMedia()
     }
+    @Volatile
+    private var pendingMediaStopRunnable: Runnable? = null
 
     private fun duckMedia() {
         if (!isDucked) {
@@ -243,6 +245,7 @@ internal class AapAudio(
 
     fun releaseAllFocus() {
         AppLog.i("AapAudio: Releasing all audio focus.")
+        cancelPendingMediaStop()
         synchronized(activeAudioChannels) { activeAudioChannels.clear() }
         // The latch is a property of one connection, not of the head unit: re-arm it so a session
         // that reconnects with Bluetooth off gets the car-radio behaviour back.
@@ -282,6 +285,9 @@ internal class AapAudio(
     }
 
     private fun startAudioTrack(channel: Int) {
+        if (channel == Channel.ID_AUD) {
+            cancelPendingMediaStop()
+        }
         if (audioDecoder.getTrack(channel) != null) return
 
         val config = AudioConfigs.get(channel)
@@ -404,6 +410,10 @@ internal class AapAudio(
             length = AUDIO_BUFS_SIZE
         }
 
+        if (channel == Channel.ID_AUD) {
+            cancelPendingMediaStop()
+        }
+
         if (audioDecoder.getTrack(channel) == null) {
             startAudioTrack(channel)
         }
@@ -429,6 +439,7 @@ internal class AapAudio(
 
     fun restartAudio() {
         AppLog.i("AapAudio: Restarting all audio tracks")
+        cancelPendingMediaStop()
         audioDecoder.stop()
     }
 
@@ -439,15 +450,46 @@ internal class AapAudio(
             // Just restore media volume.
             handler.removeCallbacks(unduckRunnable)
             unduckMedia()
+        } else if (channel == Channel.ID_AUD && !staticAudioFocus) {
+            // Debounce media channel teardown to absorb track transitions (e.g. YouTube Music, Spotify).
+            // Tearing down the audio track and releasing audio focus instantly between songs causes
+            // the headunit's Bluetooth stack / car radio to regain focus and send AVRCP play/pause commands
+            // to the phone, causing streaming services to detect concurrent streaming sessions and error
+            // with "too many devices streaming on your plan right now".
+            scheduleDebouncedMediaStop()
         } else {
-            audioDecoder.stop(channel)
-            onAudioPlaybackStopped(channel)
+            executeStopAudio(channel)
         }
+    }
+
+    fun cancelPendingMediaStop() {
+        pendingMediaStopRunnable?.let {
+            handler.removeCallbacks(it)
+            pendingMediaStopRunnable = null
+            AppLog.d("AapAudio: Cancelled pending media stop (song transition absorbed)")
+        }
+    }
+
+    private fun scheduleDebouncedMediaStop() {
+        cancelPendingMediaStop()
+        val runnable = Runnable {
+            pendingMediaStopRunnable = null
+            AppLog.i("AapAudio: Media stop debounce expired - tearing down media track and releasing focus")
+            executeStopAudio(Channel.ID_AUD)
+        }
+        pendingMediaStopRunnable = runnable
+        handler.postDelayed(runnable, MEDIA_STOP_DEBOUNCE_MS)
+    }
+
+    private fun executeStopAudio(channel: Int) {
+        audioDecoder.stop(channel)
+        onAudioPlaybackStopped(channel)
     }
 
     companion object {
         private const val AUDIO_BUFS_SIZE = 65536 * 4  // Up to 256 Kbytes
         private const val DUCK_VOLUME_FACTOR = 0.4f
         private const val UNDUCK_DELAY_MS = 1500L
+        private const val MEDIA_STOP_DEBOUNCE_MS = 1500L
     }
 }

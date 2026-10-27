@@ -91,7 +91,9 @@ internal class AapControlMedia(
 
     private fun mediaStartRequest(request: Media.Start, channel: Int): Int {
         AppLog.i("Media Start Request %s: session=%d, config_index=%d", Channel.name(channel), request.sessionId, request.configurationIndex)
-
+        if (channel == Channel.ID_AUD) {
+            aapAudio.cancelPendingMediaStop()
+        }
         aapTransport.setSessionId(channel, request.sessionId)
         return 0
     }
@@ -380,7 +382,7 @@ internal class AapControlService(
         // Always respond with the mapped focus state to AA — never deny.
         // the phone must always believe the headunit
         // has audio focus, otherwise it keeps audio output on the phone itself.
-        val mappedState = focusResponse[notification.request]
+        val mappedState = AudioFocusPolicy.getResponse(notification.request)
         if (mappedState != null) {
             val response = Control.AudioFocusNotification.newBuilder()
                 .setFocusState(mappedState)
@@ -427,13 +429,6 @@ internal class AapControlService(
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT to "AUDIOFOCUS_LOSS_TRANSIENT",
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK to "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK",
                 AudioManager.AUDIOFOCUS_NONE to "AUDIOFOCUS_NONE"
-        )
-
-        private val focusResponse = mapOf(
-            Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE to Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS,
-            Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN to Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN,
-            Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT to Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN_TRANSIENT,
-            Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT_MAY_DUCK to Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN_TRANSIENT_GUIDANCE_ONLY
         )
     }
 }

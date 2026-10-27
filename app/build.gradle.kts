@@ -102,12 +102,6 @@ android {
     }
 
     signingConfigs {
-        getByName("debug") {
-            // storeFile = file("../keystore.jkc")
-            // storePassword = property("HEADUNIT_KEYSTORE_PASSWORD") as String
-            // keyAlias = property("HEADUNIT_KEYSTORE_ALIAS") as String
-            // keyPassword = property("HEADUNIT_KEYSTORE_PASSWORD") as String
-        }
         create("release") {
             val defaultStoreFile = when {
                 rootProject.file("headunit-release-key.jks").exists() -> rootProject.file("headunit-release-key.jks")
@@ -116,8 +110,10 @@ android {
             }
             if (defaultStoreFile != null) {
                 storeFile = defaultStoreFile
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
             }
-            keyAlias = "headunit-revived"
 
             val keyfile = rootProject.file("key.properties")
             val signingPropsFile = rootProject.file("secrets.properties")
@@ -139,8 +135,17 @@ android {
             } else {
                 val envStorePass = System.getenv("HEADUNIT_KEYSTORE_PASSWORD") ?: (project.findProperty("HEADUNIT_KEYSTORE_PASSWORD") as? String)
                 val envKeyPass = System.getenv("HEADUNIT_KEY_PASSWORD") ?: (project.findProperty("HEADUNIT_KEY_PASSWORD") as? String)
-                if (envStorePass != null) storePassword = envStorePass
-                if (envKeyPass != null) keyPassword = envKeyPass
+                if (!envStorePass.isNullOrBlank()) storePassword = envStorePass
+                if (!envKeyPass.isNullOrBlank()) keyPassword = envKeyPass
+            }
+        }
+        getByName("debug") {
+            val relConfig = getByName("release")
+            if (relConfig.storeFile != null && relConfig.storeFile!!.exists()) {
+                storeFile = relConfig.storeFile
+                storePassword = relConfig.storePassword
+                keyAlias = relConfig.keyAlias
+                keyPassword = relConfig.keyPassword
             }
         }
     }
@@ -163,6 +168,7 @@ android {
         }
 
         getByName("debug") {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

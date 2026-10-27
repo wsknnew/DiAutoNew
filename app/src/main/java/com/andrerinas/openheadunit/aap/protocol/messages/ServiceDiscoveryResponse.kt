@@ -12,6 +12,7 @@ import com.andrerinas.openheadunit.aap.protocol.proto.Media
 import com.andrerinas.openheadunit.aap.protocol.proto.Sensors
 import com.andrerinas.openheadunit.decoder.VideoDecoder
 import com.andrerinas.openheadunit.utils.AppLog
+import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.utils.HeadUnitScreenConfig
 import com.google.protobuf.Message
 
@@ -199,11 +200,14 @@ class ServiceDiscoveryResponse(private val context: Context)
             services.add(mic)
 
             // Bluetooth Service
-            if (settings.bluetoothAddress.isNotEmpty()) {
+            val effectiveBtAddress = settings.bluetoothAddress.ifBlank {
+                BluetoothHelper.getBluetoothMacAddress(context) ?: ""
+            }
+            if (effectiveBtAddress.isNotEmpty()) {
                 val bluetooth = Control.Service.newBuilder().also { service ->
                     service.id = Channel.ID_BTH
                     service.bluetoothService = Control.Service.BluetoothService.newBuilder().also {
-                        it.carAddress = settings.bluetoothAddress
+                        it.carAddress = effectiveBtAddress
                         // When musicViaBluetooth is false, media audio is streamed via Android Auto protocol (Channel 3).
                         // In that case, do NOT announce A2DP pairing to Android Auto to prevent a dual-stream conflict
                         // where both Android Auto audio sink and Bluetooth A2DP audio are opened simultaneously on the phone,

@@ -1,8 +1,11 @@
 package com.andrerinas.openheadunit.ota
 
 import android.app.Activity
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.view.LayoutInflater
@@ -236,36 +239,98 @@ object OtaUpdateManager {
 
     /**
      * Install downloaded APK:
-     * 1. Try silent root install if root is available
-     * 2. Fallback to standard system package installer via FileProvider
+     * 1. Detached silent root / Shizuku install with auto-relaunch
+     * 2. Modern system PackageInstaller Session API with in-memory staging
+     * 3. Fallback to standard system PackageInstaller prompt via FileProvider
      */
     fun installApk(context: Context, apkFile: File): Boolean {
         if (!apkFile.exists()) return false
 
-        // 1. Silent root install attempt
+        // 1. Detached silent root / Shizuku install attempt
         try {
             val suExecutor = App.provide(context).suExecutor
             if (suExecutor.checkPermission()) {
-                AppLog.i("OtaUpdateManager: Root available, attempting silent installation via pm install -r")
-                val exitCode = suExecutor.runShell("pm install -r \"${apkFile.absolutePath}\"")
+                AppLog.i("OtaUpdateManager: Root/Shizuku available, attempting detached silent installation")
+                // Stage the APK to /data/local/tmp where system and shell have full read access
+                val stageCmd = "cp \"${apkFile.absolutePath}\" /data/local/tmp/diauto_update.apk && chmod 644 /data/local/tmp/diauto_update.apk"
+                suExecutor.runShell(stageCmd)
+
+                val launchComponent = "${context.packageName}/com.andrerinas.openheadunit.main.MainActivity"
+                val installScript = "nohup sh -c 'sleep 1; pm install -r -d /data/local/tmp/diauto_update.apk; am start -n $launchComponent; rm -f /data/local/tmp/diauto_update.apk' > /dev/null 2>&1 &"
+                val exitCode = suExecutor.runShell(installScript)
                 if (exitCode == 0) {
-                    AppLog.i("OtaUpdateManager: Silent root install succeeded!")
+                    AppLog.i("OtaUpdateManager: Detached root install launched successfully!")
+                    try {
+                        Toast.makeText(context, context.getString(R.string.update_installing), Toast.LENGTH_SHORT).show()
+                    } catch (_: Exception) {}
                     return true
                 }
-                AppLog.w("OtaUpdateManager: Silent root install exited with $exitCode, falling back to PackageInstaller")
+                AppLog.w("OtaUpdateManager: Detached root install exited with $exitCode, falling back to PackageInstaller.Session")
             }
         } catch (e: Exception) {
-            AppLog.w("OtaUpdateManager: Silent install exception: ${e.message}")
+            AppLog.w("OtaUpdateManager: Root install exception: ${e.message}")
         }
 
-        // 2. Standard system PackageInstaller prompt via FileProvider
+        // 2. Modern PackageInstaller Session API (handles in-place self-updates cleanly without FileProvider IPC loss)
+        try {
+            AppLog.i("OtaUpdateManager: Attempting PackageInstaller.Session install")
+            val packageInstaller = context.packageManager.packageInstaller
+            val sessionParams = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
+                setAppPackageName(context.packageName)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+                }
+            }
+            val sessionId = packageInstaller.createSession(sessionParams)
+            val session = packageInstaller.openSession(sessionId)
+            apkFile.inputStream().use { input ->
+                session.openWrite("diauto_update", 0, apkFile.length()).use { output ->
+                    input.copyTo(output)
+                    session.fsync(output)
+                }
+            }
+            val intent = Intent(context, OtaInstallReceiver::class.java).apply {
+                action = OtaInstallReceiver.ACTION_INSTALL_STATUS
+            }
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            val pendingIntent = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+            session.commit(pendingIntent.intentSender)
+            session.close()
+            AppLog.i("OtaUpdateManager: PackageInstaller session committed successfully!")
+            return true
+        } catch (e: Exception) {
+            AppLog.w("OtaUpdateManager: PackageInstaller.Session failed: ${e.message}, falling back to ACTION_VIEW")
+        }
+
+        // 3. Fallback: Standard system PackageInstaller prompt via FileProvider
         return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+                AppLog.w("OtaUpdateManager: REQUEST_INSTALL_PACKAGES not granted, opening Settings")
+                try {
+                    Toast.makeText(context, "Please allow DiAuto to install updates", Toast.LENGTH_LONG).show()
+                } catch (_: Exception) {}
+                val permIntent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(permIntent)
+                return false
+            }
+
             val authority = "${context.packageName}.fileprovider"
             val apkUri: Uri = FileProvider.getUriForFile(context, authority, apkFile)
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            }
+            val resInfoList = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            for (resolveInfo in resInfoList) {
+                context.grantUriPermission(resolveInfo.activityInfo.packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(intent)
             true
