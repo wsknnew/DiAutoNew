@@ -1,3 +1,12 @@
+# DiAuto 1.2.2 — 2026-10-27
+
+- **Streamlined 1-Tap Onboarding:**
+  - Replaced the 4-screen wizard chain with a single cockpit-themed onboarding card.
+  - Automatically configures optimal display resolution, H.265/H.264 video codec, and low-latency audio buffers upon launch.
+  - Batches all missing runtime permissions (Microphone, GPS Location, Bluetooth, Notifications) into a single 1-tap system approval prompt on "Get Started".
+  - Automatically accepts terms without requiring manual checkbox ticking and transitions immediately to the dual 1-tap cockpit dashboard.
+  - Added dedicated landscape and portrait layouts with instant language switcher.
+
 # DiAuto 1.2.1 — 2026-10-27
 
 - **Fix Multiple Device Streaming Bug on Song Transitions:**

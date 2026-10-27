@@ -1,4 +1,4 @@
-# DiAuto v1.2.1 (Custom Edition)
+# DiAuto v1.2.2 (Custom Edition)
 
 **Android Auto receiver for Android Car Head Units. Wireless or USB.**
 
@@ -43,9 +43,6 @@ This fork focuses on real-world aftermarket Android head unit reliability, autom
 - **Main-Thread ANR Elimination:** Removed synchronous network operations and sleeps from Android's Main thread during service destruction.
 - **PiP Display Guard:** Prevents Picture-in-Picture window downscaling from overwriting native 1080p/720p display preferences.
 - **Touch Coordinate NaN Guard:** Division-by-zero and non-finite coordinate protection during dynamic surface resizing.
-
-### 5. Companion Tool: Wireless ADB for AC8227L Head Units
-- Includes [`wireless-adb-headunit/`](wireless-adb-headunit/README.md), an automotive companion utility ensuring persistent Wireless ADB across car reboots on MediaTek AC8227L head units.
 
 ---
 
