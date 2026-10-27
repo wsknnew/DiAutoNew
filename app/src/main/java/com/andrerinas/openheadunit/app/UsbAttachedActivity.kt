@@ -74,6 +74,15 @@ class UsbAttachedActivity : Activity() {
 
         AppLog.i("USB Intent: $intent")
 
+        if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
+            AppLog.i("UsbAttachedActivity: Received ACTION_USB_ACCESSORY_ATTACHED intent. Starting AapService.")
+            ContextCompat.startForegroundService(this, Intent(this, AapService::class.java).apply {
+                action = AapService.ACTION_CHECK_USB
+            })
+            finish()
+            return
+        }
+
         val device = resolveUsbDevice(intent)
         if (device == null || !UsbDeviceCompat.isAndroidDevice(device)) {
             if (device != null) {
@@ -149,6 +158,13 @@ class UsbAttachedActivity : Activity() {
         }
 
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        settings?.let { s ->
+            val allowed = s.allowedDevices.toMutableSet()
+            if (allowed.add(deviceCompat.uniqueName)) {
+                s.allowedDevices = allowed
+                AppLog.i("UsbAttachedActivity: Auto-whitelisted device ${deviceCompat.uniqueName}")
+            }
+        }
         val usbMode = UsbAccessoryMode(usbManager)
         AppLog.i("Switching USB device to accessory mode " + deviceCompat.uniqueName)
         ToastUtils.showToast(this, getString(R.string.switching_usb_accessory_mode, deviceCompat.uniqueName), Toast.LENGTH_SHORT)
@@ -167,6 +183,15 @@ class UsbAttachedActivity : Activity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
+        if (intent.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
+            AppLog.i("UsbAttachedActivity: Received ACTION_USB_ACCESSORY_ATTACHED in onNewIntent. Starting AapService.")
+            ContextCompat.startForegroundService(this, Intent(this, AapService::class.java).apply {
+                action = AapService.ACTION_CHECK_USB
+            })
+            finish()
+            return
+        }
 
         val device = resolveUsbDevice(intent)
         if (device == null || !UsbDeviceCompat.isAndroidDevice(device)) {

@@ -106,7 +106,7 @@ class OnboardingActivity : BaseActivity() {
         val m = realMetrics()
         val hevc = VideoDecoder.isHevcSupported()
         val codec = if (hevc) "H.265" else "H.264"
-        displaySummary.text = "${m.widthPixels}x${m.heightPixels} (${recommendedDpi()} dpi, $codec)"
+        displaySummary.text = "${m.widthPixels}x${m.heightPixels} (${settings.dpiPixelDensity} dpi, $codec)"
     }
 
     private fun updatePermissionsStatus() {
@@ -237,7 +237,7 @@ class OnboardingActivity : BaseActivity() {
             if (settings.viewMode != previousViewMode) settings.pendingRendererConfirm = true
         }
         if (settings.dpiPixelDensity == 0) {
-            settings.dpiPixelDensity = result.recommendedDpi
+            settings.dpiPixelDensity = Settings.DEFAULT_DPI_SMALL
         }
         settings.commit()
     }

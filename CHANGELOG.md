@@ -1,3 +1,16 @@
+# DiAuto 1.2.3 — 2026-10-28
+
+- **Audio Soft Fade-In Ramp & Buffer Priming:**
+  - Implemented 300ms soft fade-in volume ramp (`AudioSoftFadeInPolicy`) for media audio (and 60ms for speech/guidance), completely eliminating initial audio spikes and blasts when music starts playing upon connection.
+  - Deferred `audioTrack.play()` until initial audio buffer priming is written, eliminating DAC step pops and buffer underrun clicks on initial connection.
+- **Hardware DSP Equalizer Trigger Disabled by Default:**
+  - Changed default setting of `attach_hw_dsp_equalizer` to OFF to prevent head unit DSP / amplifier gain spikes upon Android Auto session startup.
+- **Small DPI Default (132 DPI):**
+  - Set default UI density to Small (132 DPI) for optimal screen real estate and balanced icon scaling across automotive displays.
+- **Permanent USB Permission & Auto-Approval:**
+  - Added wildcard `<usb-device />` filter to `usb_device_filter.xml` so the Android OS allows checking "Always open DiAuto when this USB device is connected" for all phone models.
+  - Registered `ACTION_USB_ACCESSORY_ATTACHED` intent filter and automatic device whitelisting in `UsbAttachedActivity` and `AapService`, preventing recurring OS permission dialogs on reconnect.
+
 # DiAuto 1.2.2 — 2026-10-27
 
 - **Streamlined 1-Tap Onboarding:**

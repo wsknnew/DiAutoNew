@@ -3,4 +3,6 @@
     <!-- Android Open Accessory (AOA) Protocol IDs (0x18D1: 0x2D00, 0x2D01) -->
     <usb-device vendor-id="6353" product-id="11520" />
     <usb-device vendor-id="6353" product-id="11521" />
+    <!-- Wildcard to match any Android USB device (Infinix, Samsung, Xiaomi, etc.) so Android OS persists 'Use by default' -->
+    <usb-device />
 </resources>

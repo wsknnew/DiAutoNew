@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
+import com.andrerinas.openheadunit.aap.protocol.Channel
 import com.andrerinas.openheadunit.utils.AppLog
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
@@ -19,9 +20,9 @@ import java.util.concurrent.TimeUnit
 
 class AudioTrackWrapper(
     stream: Int,
-    sampleRateInHz: Int,
-    bitDepth: Int,
-    channelCount: Int,
+    private val sampleRateInHz: Int,
+    private val bitDepth: Int,
+    private val channelCount: Int,
     private val isAac: Boolean = false,
     gain: Float,
     private val audioLatencyMultiplier: Int = 8,
@@ -98,6 +99,31 @@ class AudioTrackWrapper(
     private var framesWritten: Long = 0
     private val bytesPerFrame: Int = channelCount * (if (bitDepth == 16) 2 else 1)
 
+    // Soft fade-in ramp to eliminate initial volume spikes and DAC step pops.
+    // 300ms for media stream; 60ms for speech / navigation prompts.
+    private val totalRampFrames: Long = AudioSoftFadeInPolicy.calculateTotalRampFrames(sampleRateInHz, channelId)
+    private var rampFramesProcessed: Long = 0L
+
+    private fun applySoftFadeIn(buffer: ByteArray, size: Int) {
+        if (bitDepth != 16 || size <= 0 || rampFramesProcessed >= totalRampFrames) return
+        val step = bytesPerFrame
+        var offset = 0
+        while (offset + step <= size && rampFramesProcessed < totalRampFrames) {
+            val rampMultiplier = AudioSoftFadeInPolicy.calculateMultiplier(rampFramesProcessed, totalRampFrames)
+            for (ch in 0 until channelCount) {
+                val sampleOffset = offset + ch * 2
+                val low = buffer[sampleOffset].toInt() and 0xFF
+                val high = buffer[sampleOffset + 1].toInt()
+                val sample = (high shl 8) or low
+                val modifiedSample = (sample * rampMultiplier).toInt().coerceIn(-32768, 32767)
+                buffer[sampleOffset] = (modifiedSample and 0xFF).toByte()
+                buffer[sampleOffset + 1] = ((modifiedSample shr 8) and 0xFF).toByte()
+            }
+            rampFramesProcessed++
+            offset += step
+        }
+    }
+
     init {
         this.name = "AudioPlaybackThread"
         audioTrack = if (mixer == null) {
@@ -113,7 +139,8 @@ class AudioTrackWrapper(
             setVolume(gain)
             audioTrack?.let { track ->
                 attachHwDspEqualizerQuietly(track.audioSessionId)
-                track.play()
+                // Note: track.play() is delayed until the first primed buffer is written in writeToTrack
+                // to avoid starting in a buffer underrun state.
             }
         }
 
@@ -220,6 +247,7 @@ class AudioTrackWrapper(
     }
 
     private fun writeToTrack(buffer: ByteArray, size: Int) {
+        applySoftFadeIn(buffer, size)
         if (mixer != null) {
             mixer.feed(channelId, buffer, 0, size)
             framesWritten += size / bytesPerFrame
@@ -228,6 +256,14 @@ class AudioTrackWrapper(
             val result = audioTrack?.write(buffer, 0, size) ?: 0
             if (result > 0) {
                 framesWritten += result / bytesPerFrame
+                val track = audioTrack
+                if (track != null && track.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                    try {
+                        track.play()
+                    } catch (e: Exception) {
+                        AppLog.e("Failed to start AudioTrack playback", e)
+                    }
+                }
             }
         }
     }

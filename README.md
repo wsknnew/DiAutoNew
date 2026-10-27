@@ -1,4 +1,4 @@
-# DiAuto v1.2.2 (Custom Edition)
+# DiAuto v1.2.3 (Custom Edition)
 
 **Android Auto receiver for Android Car Head Units. Wireless or USB.**
 

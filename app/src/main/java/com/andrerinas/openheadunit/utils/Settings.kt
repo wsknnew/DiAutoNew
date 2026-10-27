@@ -277,7 +277,7 @@ class Settings(private val context: Context) {
         }
 
     var dpiPixelDensity: Int
-        get() = prefs.getInt("dpi-pixel-density", 0) // Default 0 for Auto
+        get() = prefs.getInt("dpi-pixel-density", DEFAULT_DPI_SMALL)
         set(value) {
             prefs.edit().putInt("dpi-pixel-density", value).apply()
         }
@@ -1103,6 +1103,9 @@ class Settings(private val context: Context) {
 
     companion object {
         const val PREFS_NAME = "settings"
+
+        /** Default DPI scale: Small (132 DPI) */
+        const val DEFAULT_DPI_SMALL = 132
 
         /** Default coordinates: Jakarta, Indonesia (-6.2087634, 106.8455990) */
         const val DEFAULT_LOCATION_LATITUDE = -6.2087634

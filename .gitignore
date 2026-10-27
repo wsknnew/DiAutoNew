@@ -89,3 +89,7 @@ docs/TELEGRAM_ANNOUNCEMENTS.md
 
 # oh-my-claudecode local state
 .omc/
+
+# Local launcher helper
+aa-server-launcher/
+

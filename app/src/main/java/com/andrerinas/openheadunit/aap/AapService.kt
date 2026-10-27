@@ -2242,6 +2242,12 @@ class AapService : Service(), UsbReceiver.Listener {
         val deviceName = UsbDeviceCompat(device).uniqueName
         if (granted) {
             AppLog.i("USB permission granted for $deviceName")
+            val settings = App.provide(this).settings
+            val allowed = settings.allowedDevices.toMutableSet()
+            if (allowed.add(deviceName)) {
+                settings.allowedDevices = allowed
+                AppLog.i("AapService: Auto-whitelisted device $deviceName")
+            }
             if (UsbDeviceCompat.isInAccessoryMode(device)) {
                 isSwitchingToAccessory.set(true)
                 serviceScope.launch {
@@ -2254,7 +2260,6 @@ class AapService : Service(), UsbReceiver.Listener {
             } else {
                 isSwitchingToAccessory.set(true)
                 val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
-                val settings = App.provide(this).settings
                 val usbMode = UsbAccessoryMode(usbManager)
                 serviceScope.launch(Dispatchers.IO) {
                     try {
