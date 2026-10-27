@@ -204,4 +204,19 @@
     <string name="da_reconnecting_phone" translatable="false">Reconnecting to phone… Please wait</string>
     <string name="da_disconnect_driving_btn" translatable="false">Disconnect</string>
     <string name="da_disconnect_driving_hint" translatable="false">Tap to return to car dashboard</string>
+
+    <!-- Simplified 1-Tap Onboarding Strings -->
+    <string name="onb_simplified_subtitle" translatable="false">Android Auto Receiver for Car Head Units</string>
+    <string name="onb_start_button" translatable="false">Get Started</string>
+    <string name="onb_starting_status" translatable="false">Setting up…</string>
+    <string name="onb_card_features_title" translatable="false">Ready Out-of-the-Box</string>
+    <string name="onb_feature_dual_connect" translatable="false">Wireless &amp; USB Android Auto pre-configured</string>
+    <string name="onb_feature_display_audio" translatable="false">Screen resolution and low-latency audio auto-tuned</string>
+    <string name="onb_feature_gps_nav" translatable="false">Navigation using phone GPS for maximum accuracy</string>
+    <string name="onb_card_permissions_title" translatable="false">Permissions Setup</string>
+    <string name="onb_card_permissions_desc" translatable="false">Microphone, location, Bluetooth, and notifications are approved together in 1 tap for voice commands, navigation, and wireless projection.</string>
+    <string name="onb_perms_all_granted" translatable="false">All permissions granted</string>
+    <string name="onb_perms_1tap_approval" translatable="false">1-Tap Approval</string>
+    <string name="onb_safety_disclaimer_inline" translatable="false">By tapping Get Started, you agree to drive responsibly and follow all applicable road safety regulations.</string>
+    <string name="onb_settings_customize" translatable="false">Custom Settings</string>
 </resources>
