@@ -10,6 +10,13 @@ import com.andrerinas.openheadunit.aap.protocol.proto.Control
  * to tear down virtual audio routing and flip audio to phone speakers/Bluetooth, which triggers
  * concurrent playback detection ("too many devices streaming on your plan right now").
  * Responding with STATE_LOSS_TRANSIENT preserves the virtual audio pipeline in standby mode.
+ *
+ * During navigation guidance (e.g. Google Maps or Waze turn-by-turn prompts or incident alerts),
+ * the phone requests transient focus (GAIN_TRANSIENT_MAY_DUCK) while media is actively playing.
+ * When the navigation reminder finishes, the phone releases that transient focus.
+ * If media is active, responding with STATE_LOSS_TRANSIENT mistakenly informs the phone that
+ * all audio has lost focus, pausing YouTube Music and causing concurrent stream errors on subsequent reminders.
+ * Instead, when media is active, releasing transient guidance returns the focus state to STATE_GAIN.
  */
 object AudioFocusPolicy {
 
@@ -20,6 +27,13 @@ object AudioFocusPolicy {
         Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT_MAY_DUCK to Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN_TRANSIENT_GUIDANCE_ONLY
     )
 
-    fun getResponse(request: Control.AudioFocusRequestNotification.AudioFocusRequestType): Control.AudioFocusNotification.AudioFocusStateType? =
-        focusResponse[request]
+    fun getResponse(
+        request: Control.AudioFocusRequestNotification.AudioFocusRequestType,
+        isMediaActive: Boolean = false
+    ): Control.AudioFocusNotification.AudioFocusStateType? {
+        if (request == Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE && isMediaActive) {
+            return Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN
+        }
+        return focusResponse[request]
+    }
 }

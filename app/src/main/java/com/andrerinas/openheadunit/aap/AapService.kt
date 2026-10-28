@@ -1095,7 +1095,9 @@ class AapService : Service(), UsbReceiver.Listener {
 
         // Link audio focus state changes to our MediaSession state
         commManager.onAudioFocusStateChanged = { isPlaying ->
-            updateMediaSessionState(isPlaying, debounceStop = !isPlaying)
+            // If phone explicitly reported active playback via MediaPlaybackStatus, don't let transient focus loss stop MediaSession
+            val effectivePlaying = if (!isPlaying && lastAaPlaybackIsPlaying == true) true else isPlaying
+            updateMediaSessionState(effectivePlaying, debounceStop = !effectivePlaying)
         }
 
         // Acquire permanent audio focus just before starting the AA handshake so we

@@ -9,8 +9,22 @@ class AudioFocusTransitionPolicyTest {
 
     @Test
     fun `audio focus release maps to STATE_LOSS_TRANSIENT to prevent routing collapse during song transition`() {
-        val releaseResponse = AudioFocusPolicy.getResponse(Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE)
+        val releaseResponse = AudioFocusPolicy.getResponse(
+            Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE,
+            isMediaActive = false
+        )
         assertEquals(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT, releaseResponse)
+        assertNotEquals(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS, releaseResponse)
+    }
+
+    @Test
+    fun `audio focus release maps to STATE_GAIN when media is active during navigation reminder`() {
+        val releaseResponse = AudioFocusPolicy.getResponse(
+            Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE,
+            isMediaActive = true
+        )
+        assertEquals(Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN, releaseResponse)
+        assertNotEquals(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT, releaseResponse)
         assertNotEquals(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS, releaseResponse)
     }
 

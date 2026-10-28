@@ -74,6 +74,15 @@ internal class AapAudio(
     }
     @Volatile
     private var pendingMediaStopRunnable: Runnable? = null
+    @Volatile
+    private var pendingNavStopRunnable: Runnable? = null
+
+    fun isMediaActive(): Boolean {
+        val inActiveChannels = synchronized(activeAudioChannels) {
+            activeAudioChannels.contains(Channel.ID_AUD)
+        }
+        return inActiveChannels || pendingMediaStopRunnable != null || (audioDecoder.getTrack(Channel.ID_AUD) != null)
+    }
 
     private fun duckMedia() {
         if (!isDucked) {
@@ -148,10 +157,15 @@ internal class AapAudio(
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // API 26+
             if (focusRequest == Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE) {
-                AppLog.i("Releasing audio focus")
-                audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
-                audioFocusRequest = null
-                result = AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                if (isMediaActive()) {
+                    AppLog.i("AapAudio: Audio focus RELEASE received from phone, but media is still active - retaining system audio focus to prevent AVRCP storms")
+                    result = AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                } else {
+                    AppLog.i("Releasing audio focus")
+                    audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+                    audioFocusRequest = null
+                    result = AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                }
             } else {
                 val usage = when (stream) {
                     AudioManager.STREAM_NOTIFICATION -> AudioAttributes.USAGE_NOTIFICATION
@@ -177,10 +191,15 @@ internal class AapAudio(
             @Suppress("DEPRECATION")
             result = when (focusRequest) {
                 Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE -> {
-                    audioManager.abandonAudioFocus(callback)
-                    legacyFocusListener?.let { audioManager.abandonAudioFocus(it) }
-                    legacyFocusListener = null
-                    AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                    if (isMediaActive()) {
+                        AppLog.i("AapAudio: Audio focus RELEASE received (legacy), but media is still active - retaining system audio focus")
+                        AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                    } else {
+                        audioManager.abandonAudioFocus(callback)
+                        legacyFocusListener?.let { audioManager.abandonAudioFocus(it) }
+                        legacyFocusListener = null
+                        AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                    }
                 }
                 Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_VALUE -> {
                     legacyFocusListener = callback
@@ -246,6 +265,7 @@ internal class AapAudio(
     fun releaseAllFocus() {
         AppLog.i("AapAudio: Releasing all audio focus.")
         cancelPendingMediaStop()
+        cancelPendingNavStop()
         synchronized(activeAudioChannels) { activeAudioChannels.clear() }
         // The latch is a property of one connection, not of the head unit: re-arm it so a session
         // that reconnects with Bluetooth off gets the car-radio behaviour back.
@@ -287,6 +307,8 @@ internal class AapAudio(
     private fun startAudioTrack(channel: Int) {
         if (channel == Channel.ID_AUD) {
             cancelPendingMediaStop()
+        } else if (channel == Channel.ID_AU2) {
+            cancelPendingNavStop()
         }
         if (audioDecoder.getTrack(channel) != null) return
 
@@ -412,6 +434,8 @@ internal class AapAudio(
 
         if (channel == Channel.ID_AUD) {
             cancelPendingMediaStop()
+        } else if (channel == Channel.ID_AU2) {
+            cancelPendingNavStop()
         }
 
         if (audioDecoder.getTrack(channel) == null) {
@@ -440,6 +464,7 @@ internal class AapAudio(
     fun restartAudio() {
         AppLog.i("AapAudio: Restarting all audio tracks")
         cancelPendingMediaStop()
+        cancelPendingNavStop()
         audioDecoder.stop()
     }
 
@@ -457,6 +482,10 @@ internal class AapAudio(
             // to the phone, causing streaming services to detect concurrent streaming sessions and error
             // with "too many devices streaming on your plan right now".
             scheduleDebouncedMediaStop()
+        } else if (channel == Channel.ID_AU2 && !staticAudioFocus) {
+            // Debounce navigation audio channel teardown to absorb rapid turn and incident reminders
+            // without churning audio track allocation and focus state.
+            scheduleDebouncedNavStop(channel)
         } else {
             executeStopAudio(channel)
         }
@@ -467,6 +496,14 @@ internal class AapAudio(
             handler.removeCallbacks(it)
             pendingMediaStopRunnable = null
             AppLog.d("AapAudio: Cancelled pending media stop (song transition absorbed)")
+        }
+    }
+
+    fun cancelPendingNavStop() {
+        pendingNavStopRunnable?.let {
+            handler.removeCallbacks(it)
+            pendingNavStopRunnable = null
+            AppLog.d("AapAudio: Cancelled pending nav stop (rapid reminder absorbed)")
         }
     }
 
@@ -481,6 +518,17 @@ internal class AapAudio(
         handler.postDelayed(runnable, MEDIA_STOP_DEBOUNCE_MS)
     }
 
+    private fun scheduleDebouncedNavStop(channel: Int) {
+        cancelPendingNavStop()
+        val runnable = Runnable {
+            pendingNavStopRunnable = null
+            AppLog.i("AapAudio: Nav stop debounce expired - tearing down nav audio track")
+            executeStopAudio(channel)
+        }
+        pendingNavStopRunnable = runnable
+        handler.postDelayed(runnable, NAV_STOP_DEBOUNCE_MS)
+    }
+
     private fun executeStopAudio(channel: Int) {
         audioDecoder.stop(channel)
         onAudioPlaybackStopped(channel)
@@ -491,5 +539,6 @@ internal class AapAudio(
         private const val DUCK_VOLUME_FACTOR = 0.4f
         private const val UNDUCK_DELAY_MS = 1500L
         private const val MEDIA_STOP_DEBOUNCE_MS = 1500L
+        private const val NAV_STOP_DEBOUNCE_MS = 2500L
     }
 }

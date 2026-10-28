@@ -93,6 +93,8 @@ internal class AapControlMedia(
         AppLog.i("Media Start Request %s: session=%d, config_index=%d", Channel.name(channel), request.sessionId, request.configurationIndex)
         if (channel == Channel.ID_AUD) {
             aapAudio.cancelPendingMediaStop()
+        } else if (channel == Channel.ID_AU2) {
+            aapAudio.cancelPendingNavStop()
         }
         aapTransport.setSessionId(channel, request.sessionId)
         return 0
@@ -382,17 +384,23 @@ internal class AapControlService(
         // Always respond with the mapped focus state to AA — never deny.
         // the phone must always believe the headunit
         // has audio focus, otherwise it keeps audio output on the phone itself.
-        val mappedState = AudioFocusPolicy.getResponse(notification.request)
+        val isMediaActive = aapAudio.isMediaActive()
+        val mappedState = AudioFocusPolicy.getResponse(notification.request, isMediaActive)
         if (mappedState != null) {
             val response = Control.AudioFocusNotification.newBuilder()
                 .setFocusState(mappedState)
                 .build()
-            AppLog.i("Sending immediate AudioFocusNotification: $mappedState (always-grant)")
+            AppLog.i("Sending immediate AudioFocusNotification: $mappedState (isMediaActive=$isMediaActive, always-grant)")
             aapTransport.send(AapMessage(channel, Control.ControlMsgType.MESSAGE_AUDIO_FOCUS_NOTIFICATION_VALUE, response))
 
-            // Sync MediaSession
-            val isGain = mappedState == Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN
-            aapTransport.onAudioFocusStateChanged?.invoke(isGain)
+            // Sync MediaSession only when playback state actually changes.
+            // Transient guidance (nav / incident alerts) does NOT stop media playback.
+            val isPlaying = when (mappedState) {
+                Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN -> true
+                Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN_TRANSIENT_GUIDANCE_ONLY -> isMediaActive
+                else -> false
+            }
+            aapTransport.onAudioFocusStateChanged?.invoke(isPlaying)
         }
 
         // Best-effort: request system audio focus to duck other apps on the headunit.

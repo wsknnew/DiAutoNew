@@ -1,3 +1,11 @@
+# DiAuto 1.2.4 — 2026-10-28
+
+- **Resolve Streaming Concurrency during Navigation & Turn/Incident Reminders:**
+  - Implemented context-aware audio focus recovery in `AudioFocusPolicy`: When a transient navigation guidance/speech alert finishes while media is active, focus automatically restores to `STATE_GAIN` instead of `STATE_LOSS_TRANSIENT`. This prevents YouTube Music and other streaming services from pausing or entering routing collapse on each turn or incident announcement.
+  - Retain head unit system audio focus in `AapAudio.requestFocusChange()` while media is actively streaming, preventing the car's Bluetooth stack / A2DP sink from regaining focus and sending AVRCP `PLAY` commands to the phone over Bluetooth.
+  - Added 2500ms navigation audio channel (`Channel.ID_AU2`) stop debounce (`scheduleDebouncedNavStop`) to eliminate rapid `AudioTrack` destruction, recreate overhead, and audio focus churn during back-to-back turn and hazard alerts.
+  - Synchronized `MediaSession` state handling in `AapControl` and `AapService`: Transient guidance requests no longer toggle playback to false, and active phone `MediaPlaybackStatus` (PLAYING) is preserved across transient focus interruptions.
+
 # DiAuto 1.2.3 — 2026-10-28
 
 - **Audio Soft Fade-In Ramp & Buffer Priming:**
