@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="14dp">
 
         <!-- Header -->
         <LinearLayout
@@ -19,11 +19,11 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingBottom="12dp">
+            android:paddingBottom="10dp">
 
             <ImageView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:contentDescription="@string/app_name"
                 android:src="@drawable/ic_adb"
                 app:tint="@color/primary" />
@@ -31,16 +31,16 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/app_name"
+                    android:text="ADB &amp; USB Mode Manager"
                     android:textColor="@color/text_primary"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -49,31 +49,41 @@
                     android:layout_height="wrap_content"
                     android:text="@string/title_platform"
                     android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <ImageButton
                 android:id="@+id/btnRefresh"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Refresh"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_refresh"
                 app:tint="@color/text_primary" />
         </LinearLayout>
 
-        <!-- Status Card -->
+        <!-- Card 1: Wireless ADB -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📶 1. Wireless ADB (Wi-Fi)"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <!-- Status Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -82,11 +92,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_inactive_badge"
-                    android:paddingHorizontal="14dp"
-                    android:paddingVertical="6dp"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="5dp"
                     android:text="@string/status_checking"
                     android:textColor="@color/accent_red"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <View
@@ -99,14 +109,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/text_muted"
-                    android:textSize="12sp"
-                    tools:text="Root: Detected" />
+                    android:textSize="11sp"
+                    tools:text="Root: None" />
             </LinearLayout>
 
+            <!-- IP & Port Info -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="10dp"
                 android:orientation="horizontal">
 
                 <LinearLayout
@@ -120,24 +131,24 @@
                         android:layout_height="wrap_content"
                         android:text="@string/ip_label"
                         android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
 
                     <TextView
                         android:id="@+id/tvIpAddress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_primary"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"
-                        tools:text="192.168.1.50" />
+                        tools:text="10.169.9.227" />
 
                     <TextView
                         android:id="@+id/tvWifiSsid"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/text_muted"
-                        android:textSize="12sp"
-                        tools:text="SSID: MyCarWiFi" />
+                        android:textSize="11sp"
+                        tools:text="SSID: CarHotspot" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -151,28 +162,29 @@
                         android:layout_height="wrap_content"
                         android:text="@string/port_label"
                         android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
 
                     <TextView
                         android:id="@+id/tvPort"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/primary"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textStyle="bold"
                         tools:text="5555" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Command Box -->
+            <!-- Connect Command Box -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/bg_command_box"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="12dp">
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp">
 
                 <TextView
                     android:id="@+id/tvConnectCommand"
@@ -181,9 +193,9 @@
                     android:layout_weight="1"
                     android:fontFamily="monospace"
                     android:textColor="@color/terminal_text"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
-                    tools:text="adb connect 192.168.1.50:5555" />
+                    tools:text="adb connect 10.169.9.227:5555" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCopyCommand"
@@ -192,164 +204,247 @@
                     android:layout_height="wrap_content"
                     android:text="@string/btn_copy_command"
                     android:textColor="@color/primary"
+                    android:textSize="12sp"
                     app:icon="@drawable/ic_copy"
                     app:iconTint="@color/primary" />
             </LinearLayout>
 
-            <!-- Main Toggle Button -->
+            <!-- Toggle Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnToggleAdb"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="10dp"
                 android:backgroundTint="@color/accent_green_dark"
                 android:text="@string/btn_enable"
                 android:textColor="@android:color/white"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                app:cornerRadius="12dp" />
+                app:cornerRadius="10dp" />
 
-            <!-- Restart Daemon Button -->
+            <!-- Dev Options Reload Helper Button (when needed) -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRestartDaemon"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:id="@+id/btnReloadViaDevOptions"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_marginTop="8dp"
-                android:text="@string/btn_restart_daemon"
-                android:textColor="@color/text_primary"
-                app:cornerRadius="12dp"
-                app:strokeColor="@color/card_stroke" />
+                android:backgroundTint="@color/accent_orange"
+                android:text="🔄 RELOAD ADB (TOGGLE DEV OPTIONS)"
+                android:textColor="@android:color/black"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:cornerRadius="10dp" />
 
-            <!-- Boot persistence switch -->
+            <!-- Action row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <LinearLayout
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRestartDaemon"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:text="@string/btn_restart_daemon"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    app:cornerRadius="8dp"
+                    app:strokeColor="@color/card_stroke" />
+
+                <!-- Auto-boot switch -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/auto_boot_title"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_boot_desc"
+                        android:layout_marginEnd="6dp"
+                        android:text="Boot Auto"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp" />
-                </LinearLayout>
 
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/switchAutoBoot"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switchAutoBoot"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
             </LinearLayout>
+
         </LinearLayout>
 
-        <!-- Shortcuts Card -->
+        <!-- Card 2: USB Mode Switcher -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🔌 2. USB Mode Switcher"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvUsbModeBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_inactive_badge"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="HOST"
+                    android:textColor="@color/accent_orange"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="HOST MODE" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/section_shortcuts"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="6dp"
+                android:text="Device mode enables PC USB-A cable ADB on the 4-pin port. Host mode is for reading USB flash drives."
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSetDeviceMode"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/primary"
+                    android:text="SET DEVICE (PC ADB)"
+                    android:textColor="@android:color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSetHostMode"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:text="SET HOST (DRIVES)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    app:cornerRadius="8dp"
+                    app:strokeColor="@color/card_stroke" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFactoryUsbSettings"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:layout_marginTop="8dp"
+                android:text="⚙️ Factory USB Menu (PIN: 56789)"
+                android:textColor="@color/primary"
+                android:textSize="12sp"
+                app:cornerRadius="8dp"
+                app:strokeColor="@color/primary" />
+        </LinearLayout>
+
+        <!-- Card 3: Quick Tools & Diagnostics -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDevOptions"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:text="@string/btn_developer_options"
-                    android:textSize="12sp"
-                    app:cornerRadius="10dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="Dev Options"
+                    android:textSize="11sp"
+                    app:cornerRadius="8dp"
                     app:strokeColor="@color/card_stroke" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnMtkEngineer"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:text="@string/btn_mtk_engineer_mode"
-                    android:textSize="12sp"
-                    app:cornerRadius="10dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="MTK Eng"
+                    android:textSize="11sp"
+                    app:cornerRadius="8dp"
                     app:strokeColor="@color/card_stroke" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAndroidSettings"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:text="@string/btn_android_settings"
-                    android:textSize="12sp"
-                    app:cornerRadius="10dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="Settings"
+                    android:textSize="11sp"
+                    app:cornerRadius="8dp"
                     app:strokeColor="@color/card_stroke" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFactoryCodes"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
-                    android:text="@string/btn_factory_codes"
-                    android:textSize="12sp"
-                    app:cornerRadius="10dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="PIN Codes"
+                    android:textSize="11sp"
+                    app:cornerRadius="8dp"
                     app:strokeColor="@color/card_stroke" />
             </LinearLayout>
-        </LinearLayout>
 
-        <!-- Diagnostics Log Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="16dp">
-
+            <!-- Console Box -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -359,7 +454,7 @@
                     android:layout_weight="1"
                     android:text="@string/section_diagnostics"
                     android:textColor="@color/text_primary"
-                    android:textSize="16sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
@@ -369,7 +464,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/btn_clear_logs"
                     android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCopyLogs"
@@ -378,20 +473,20 @@
                     android:layout_height="wrap_content"
                     android:text="@string/btn_copy_logs"
                     android:textColor="@color/primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
                 android:id="@+id/tvLogs"
                 android:layout_width="match_parent"
-                android:layout_height="180dp"
-                android:layout_marginTop="8dp"
+                android:layout_height="120dp"
+                android:layout_marginTop="4dp"
                 android:background="@drawable/bg_terminal"
                 android:fontFamily="monospace"
-                android:padding="12dp"
+                android:padding="8dp"
                 android:scrollbars="vertical"
                 android:textColor="@color/terminal_text"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 tools:text="[12:00:00] Ready." />
         </LinearLayout>
 

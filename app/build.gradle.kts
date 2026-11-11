@@ -71,8 +71,8 @@ android {
         applicationId = "com.wsknnew.diautonew"
         minSdk = 16
         targetSdk = 36
-        versionCode = 1204
-        versionName = "1.2.4"
+        versionCode = 1205
+        versionName = "1.2.5"
         setProperty("archivesBaseName", "${applicationId}_${versionName}")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
@@ -243,6 +243,9 @@ dependencies {
 
     // Multidex
     implementation("androidx.multidex:multidex:2.0.1")
+
+    // ProfileInstaller for ART Ahead-Of-Time (AOT) baseline profile compilation
+    implementation("androidx.profileinstaller:profileinstaller:1.3.1")
 
     // Navigation Component
     implementation("androidx.navigation:navigation-fragment-ktx:2.3.5")

@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var isAdbActive: Boolean = false
     private var currentPort: Int = AdbController.DEFAULT_PORT
     private var currentIp: String? = null
+    private var currentUsbMode: UsbMode = UsbMode.UNKNOWN
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         val platform = AdbController.getSystemProperty("ro.board.platform", "ac8227l")
         val buildId = Build.DISPLAY
         val androidVer = Build.VERSION.RELEASE
-        binding.tvDeviceSubtitle.text = "$platform | Android $androidVer | $buildId"
+        binding.tvDeviceSubtitle.text = "$platform | Android $androidVer (SDK ${Build.VERSION.SDK_INT}) | $buildId"
 
         binding.tvPort.text = currentPort.toString()
 
@@ -80,6 +81,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.btnReloadViaDevOptions.setOnClickListener {
+            showReloadDevOptionsGuide()
+        }
+
         binding.btnRestartDaemon.setOnClickListener {
             restartDaemon()
         }
@@ -95,6 +100,20 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
         }
 
+        // USB Mode Buttons
+        binding.btnSetDeviceMode.setOnClickListener {
+            switchUsbMode(toDevice = true)
+        }
+
+        binding.btnSetHostMode.setOnClickListener {
+            switchUsbMode(toDevice = false)
+        }
+
+        binding.btnFactoryUsbSettings.setOnClickListener {
+            CarShortcuts.showUsbModeGuideDialog(this)
+        }
+
+        // Quick Shortcuts
         binding.btnDevOptions.setOnClickListener {
             DiagnosticsLogger.log("Launching Developer Options intent...")
             CarShortcuts.openDeveloperOptions(this)
@@ -129,7 +148,6 @@ class MainActivity : AppCompatActivity() {
         DiagnosticsLogger.setListener { logs ->
             runOnUiThread {
                 binding.tvLogs.text = logs
-                // Auto-scroll to bottom
                 val scrollAmount = binding.tvLogs.layout?.let {
                     it.getLineTop(binding.tvLogs.lineCount) - binding.tvLogs.height
                 } ?: 0
@@ -139,7 +157,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        DiagnosticsLogger.log("HeadUnit Wireless ADB initialized.")
+        DiagnosticsLogger.log("HeadUnit Wireless ADB & USB Manager initialized.")
         DiagnosticsLogger.log(DiagnosticsLogger.getDeviceDiagnosticsReport())
     }
 
@@ -148,7 +166,7 @@ class MainActivity : AppCompatActivity() {
             binding.tvStatusBadge.text = getString(R.string.status_checking)
             binding.btnToggleAdb.isEnabled = false
 
-            val (hasRoot, rootInfo) = withContext(Dispatchers.IO) {
+            val (hasRoot, _) = withContext(Dispatchers.IO) {
                 AdbController.checkRoot()
             }
             binding.tvRootBadge.text = if (hasRoot) "Root: Active" else "Root: None"
@@ -164,43 +182,85 @@ class MainActivity : AppCompatActivity() {
             binding.tvIpAddress.text = currentIp ?: "No Wi-Fi Connection"
             binding.tvWifiSsid.text = "SSID: $ssid"
 
-            val listening = withContext(Dispatchers.IO) {
-                AdbController.isPortListening(currentPort)
+            // Check reachability
+            val reachability = withContext(Dispatchers.IO) {
+                AdbController.checkReachability(currentPort)
             }
-            isAdbActive = listening
 
-            updateStatusUI(listening)
+            // Check USB mode
+            currentUsbMode = withContext(Dispatchers.IO) {
+                UsbModeController.detectCurrentUsbMode()
+            }
+            updateUsbModeUI(currentUsbMode)
+
+            isAdbActive = reachability.wifiListening || reachability.loopbackListening
+            updateAdbStatusUI(reachability, hasRoot)
+
             binding.btnToggleAdb.isEnabled = true
         }
     }
 
-    private fun updateStatusUI(active: Boolean) {
+    private fun updateUsbModeUI(mode: UsbMode) {
+        when (mode) {
+            UsbMode.DEVICE -> {
+                binding.tvUsbModeBadge.text = "DEVICE MODE (PC ADB)"
+                binding.tvUsbModeBadge.setBackgroundResource(R.drawable.bg_active_badge)
+                binding.tvUsbModeBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            }
+            UsbMode.HOST -> {
+                binding.tvUsbModeBadge.text = "HOST MODE (FLASH DRIVES)"
+                binding.tvUsbModeBadge.setBackgroundResource(R.drawable.bg_inactive_badge)
+                binding.tvUsbModeBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_orange))
+            }
+            UsbMode.UNKNOWN -> {
+                binding.tvUsbModeBadge.text = "USB MODE: UNKNOWN"
+                binding.tvUsbModeBadge.setBackgroundResource(R.drawable.bg_inactive_badge)
+                binding.tvUsbModeBadge.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            }
+        }
+    }
+
+    private fun updateAdbStatusUI(reachability: PortReachability, hasRoot: Boolean) {
         val ip = currentIp ?: "<head_unit_ip>"
         val command = "adb connect $ip:$currentPort"
         binding.tvConnectCommand.text = command
 
-        if (active) {
-            binding.tvStatusBadge.text = getString(R.string.status_active)
-            binding.tvStatusBadge.setBackgroundResource(R.drawable.bg_active_badge)
-            binding.tvStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+        when {
+            reachability.wifiListening -> {
+                binding.tvStatusBadge.text = "Wireless ADB is ACTIVE"
+                binding.tvStatusBadge.setBackgroundResource(R.drawable.bg_active_badge)
+                binding.tvStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
 
-            binding.btnToggleAdb.text = getString(R.string.btn_disable)
-            binding.btnToggleAdb.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_red_dark)
-        } else {
-            binding.tvStatusBadge.text = getString(R.string.status_inactive)
-            binding.tvStatusBadge.setBackgroundResource(R.drawable.bg_inactive_badge)
-            binding.tvStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_red))
+                binding.btnToggleAdb.text = getString(R.string.btn_disable)
+                binding.btnToggleAdb.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_red_dark)
+                binding.btnReloadViaDevOptions.visibility = View.GONE
+            }
+            reachability.loopbackListening -> {
+                binding.tvStatusBadge.text = "Local Only (Toggle Dev Options)"
+                binding.tvStatusBadge.setBackgroundResource(R.drawable.bg_inactive_badge)
+                binding.tvStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_orange))
 
-            binding.btnToggleAdb.text = getString(R.string.btn_enable)
-            binding.btnToggleAdb.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_green_dark)
+                binding.btnToggleAdb.text = getString(R.string.btn_disable)
+                binding.btnToggleAdb.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_red_dark)
+                binding.btnReloadViaDevOptions.visibility = View.VISIBLE
+            }
+            else -> {
+                binding.tvStatusBadge.text = getString(R.string.status_inactive)
+                binding.tvStatusBadge.setBackgroundResource(R.drawable.bg_inactive_badge)
+                binding.tvStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_red))
+
+                binding.btnToggleAdb.text = getString(R.string.btn_enable)
+                binding.btnToggleAdb.backgroundTintList = ContextCompat.getColorStateList(this, R.color.accent_green_dark)
+                binding.btnReloadViaDevOptions.visibility = if (!hasRoot) View.VISIBLE else View.GONE
+            }
         }
     }
 
     private fun enableAdb() {
         lifecycleScope.launch {
             binding.btnToggleAdb.isEnabled = false
-            binding.btnToggleAdb.text = "ENABLING..."
-            DiagnosticsLogger.log("--> Request to ENABLE Wireless ADB on port $currentPort")
+            binding.btnToggleAdb.text = "ACTIVATING..."
+            DiagnosticsLogger.log("--> Request to ACTIVATE Wireless ADB on port $currentPort")
 
             val result = AdbController.enableWirelessAdb(this@MainActivity, currentPort)
             for (line in result.logs) {
@@ -208,7 +268,12 @@ class MainActivity : AppCompatActivity() {
             }
             DiagnosticsLogger.log("<-- Result: ${result.message}")
 
-            Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+            if (result.requiresDevOptionsToggle) {
+                showReloadDevOptionsGuide()
+            } else {
+                Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+            }
+
             refreshStatus()
         }
     }
@@ -241,10 +306,49 @@ class MainActivity : AppCompatActivity() {
             }
             DiagnosticsLogger.log("<-- Result: ${result.message}")
 
-            Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_SHORT).show()
+            if (result.requiresDevOptionsToggle) {
+                showReloadDevOptionsGuide()
+            } else {
+                Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_SHORT).show()
+            }
+
             binding.btnRestartDaemon.isEnabled = true
             refreshStatus()
         }
+    }
+
+    private fun switchUsbMode(toDevice: Boolean) {
+        lifecycleScope.launch {
+            val modeName = if (toDevice) "DEVICE" else "HOST"
+            DiagnosticsLogger.log("--> Switching USB Mode to $modeName")
+
+            val result = UsbModeController.switchUsbMode(toDevice)
+            for (line in result.logs) {
+                DiagnosticsLogger.log(line)
+            }
+            DiagnosticsLogger.log("<-- USB Result: ${result.message}")
+
+            Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+            refreshStatus()
+        }
+    }
+
+    private fun showReloadDevOptionsGuide() {
+        AlertDialog.Builder(this)
+            .setTitle("Reload ADB Daemon (Rootless)")
+            .setMessage(
+                "Port 5555 is configured in system properties!\n\n" +
+                "To apply it without root:\n" +
+                "1. Tap 'OPEN DEV OPTIONS' below.\n" +
+                "2. Find 'USB Debugging'.\n" +
+                "3. Turn it OFF, then turn it back ON.\n" +
+                "4. Return to this app. Wireless ADB will be ACTIVE!"
+            )
+            .setPositiveButton("Open Dev Options") { _, _ ->
+                CarShortcuts.openDeveloperOptions(this)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun copyConnectCommand() {
@@ -267,13 +371,16 @@ class MainActivity : AppCompatActivity() {
     private fun showFactoryCodesDialog() {
         val info = CarShortcuts.getFactoryPasscodesInfo()
         AlertDialog.Builder(this)
-            .setTitle("AC8227L Factory Passcodes")
+            .setTitle("AC8227L Passcodes & USB Mode")
             .setMessage(info)
-            .setPositiveButton("OK", null)
-            .setNeutralButton("Copy") { _, _ ->
-                copyToClipboard("Factory Passcodes", info)
-                Toast.makeText(this, "Passcodes copied to clipboard", Toast.LENGTH_SHORT).show()
+            .setPositiveButton("Open Factory Settings") { _, _ ->
+                CarShortcuts.openFactorySettings(this)
             }
+            .setNeutralButton("Copy PIN (56789)") { _, _ ->
+                copyToClipboard("Factory PIN", "56789")
+                Toast.makeText(this, "PIN 56789 copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Close", null)
             .show()
     }
 }

@@ -1,3 +1,17 @@
+# DiAuto 1.2.5 — 2026-11-11
+
+- **Ahead-Of-Time (AOT) Native Compilation Engine:**
+  - Added dedicated `AotOptimizer` utility to automatically pre-compile DiAuto into pure native ARM machine code (`speed` dexopt filter) on low-resource Cortex-A7 car head units.
+  - Eliminated runtime JIT bytecode interpretation overhead, reducing projection latency and eliminating UI and audio stutters.
+  - Integrated automatic post-update AOT compilation into `OtaUpdateManager`'s silent root installer (`cmd package compile -m speed`), guaranteeing newly installed releases immediately run at maximum speed before app launch.
+  - Integrated `androidx.profileinstaller` for baseline ART AOT compilation on Android 7+ (API 24+) without root.
+  - Added repository fallback mechanism in `OtaUpdateManager` to seamlessly support GitHub organization and account migrations without breaking in-place OTA self-updates.
+- **Companion Utility: Wireless ADB for Head Units v2.0.0:**
+  - Added `UsbModeController` with one-tap USB Mode switching between Host and Device mode for AC8227L and MediaTek head units.
+  - Added multi-interface reachability verification (loopback `127.0.0.1` and Wi-Fi interface).
+  - Added direct shortcuts to MTK Engineering Mode, Developer Options, and Factory PIN dialogs.
+  - Streamlined automotive landscape UI layout and interactive diagnostics.
+
 # DiAuto 1.2.4 — 2026-10-28
 
 - **Resolve Streaming Concurrency during Navigation & Turn/Incident Reminders:**

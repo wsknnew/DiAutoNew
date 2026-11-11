@@ -1,4 +1,4 @@
-# DiAuto v1.2.4 (Custom Edition)
+# DiAuto v1.2.5 (Custom Edition)
 
 **Android Auto receiver for Android Car Head Units. Wireless or USB.**
 
@@ -14,17 +14,28 @@
 
 This fork focuses on real-world aftermarket Android head unit reliability, automotive UX improvements, and standalone in-car updates:
 
-### 1. Dual 1-Tap Cockpit Dashboard (Wireless & USB)
+### 1. Ahead-Of-Time (AOT) Native Compilation Engine
+- **JIT Latency Elimination:** On low-power Cortex-A7 car head units (e.g., AC8227L with 1–2 GB RAM), `AotOptimizer` pre-compiles DiAuto DEX bytecode into pure native ARM machine code (`speed` compilation filter).
+- **Zero-Stutter Video & Audio:** Eliminates on-the-fly JIT compilation overhead during projection, video decoding, and audio stream transitions.
+- **OTA Self-Optimization:** Built-in OTA updater (`OtaUpdateManager`) automatically executes Ahead-Of-Time compilation immediately upon silent root install (`pm install -r -d ... && cmd package compile -m speed`), guaranteeing updated APKs launch with peak native performance.
+- **ProfileInstaller Baseline:** Bundled ART ProfileInstaller enables baseline AOT compilation on Android 7+ (API 24+) without requiring root.
+
+### 2. Dual 1-Tap Cockpit Dashboard (Wireless & USB)
 - **Side-by-Side 1-Tap Connection Hero Cards:** The primary standby cockpit dashboard presents Wireless Android Auto (Head Unit Server on port 5277 / Wi-Fi / BT) and USB Android Auto side-by-side with large, driver-friendly 1-tap connect buttons.
 - **Glance USB Bar:** Live USB status indicator and phone model detection (Pixel, Samsung Galaxy, etc.) right on the home dashboard.
 - **Zero Annoying Repeated USB Approval Popups:** Silenced recurring Android OS USB permission popups when connecting USB cables or re-enumerating into AOA mode.
 - **Enhanced Buffering & Reconnection Resilience:** 1 MB socket buffer to absorb Wi-Fi hotspot packet jitter; 64 KB bulk transfer USB buffer; automatic reconnect on unexpected dropouts.
 - **Driving-Friendly Disconnect UI:** High-contrast 28sp connection lost screen with a prominent 60dp red 1-tap disconnect button for effortless dashboard exit while driving.
 
-### 2. In-App GitHub OTA Updater
+### 3. In-App GitHub OTA Updater
 - **Direct In-Car Updates:** Built-in OTA updater checks [wsknnew/DiAutoNew Releases](https://github.com/wsknnew/DiAutoNew/releases/latest) directly on the car display with a visual download progress bar.
-- **Hands-Free Installation:** Automatically uses silent root install (`pm install -r`) when root or Shizuku is available, or standard Android `PackageInstaller` via `FileProvider`.
+- **Hands-Free Installation:** Automatically uses silent root install (`pm install -r`) with automated post-install AOT compilation and app relaunch, or standard Android `PackageInstaller` via `FileProvider`.
 - **Automated CI/CD:** GitHub Actions release workflow (`.github/workflows/release.yml`) builds and publishes APKs upon tag push (`v*`).
+
+### 4. Companion Tool: Wireless ADB & USB Mode Switcher for Head Units (v2.0.0)
+- Includes [`wireless-adb-headunit/`](wireless-adb-headunit/README.md), an automotive companion utility ensuring persistent Wireless ADB across car reboots on MediaTek AC8227L head units.
+- **Host ⇄ Device USB Switcher:** Allows 1-tap toggle of head unit USB ports between Host mode and Device mode to enable direct laptop USB ADB debugging.
+- **Reachability Diagnostic:** Validates both loopback `127.0.0.1` and Wi-Fi interface socket bindings.
 
 ### 2. Automotive Cockpit UI & Dark Theme
 - **High-Contrast Dark Theme:** Tuned for high-glare daytime and OLED/LCD nighttime driving (`da_background`, `da_surface`, `da_accent`).

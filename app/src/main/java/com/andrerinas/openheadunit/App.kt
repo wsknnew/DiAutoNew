@@ -12,6 +12,7 @@ import androidx.multidex.MultiDex
 import com.andrerinas.openheadunit.main.BackgroundNotification
 import com.andrerinas.openheadunit.aap.AapNavigation
 import com.andrerinas.openheadunit.ssl.ConscryptInitializer
+import com.andrerinas.openheadunit.utils.AotOptimizer
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.AppThemeManager
 import com.andrerinas.openheadunit.utils.Settings
@@ -99,6 +100,9 @@ class App : Application() {
 
         // Register the main broadcast receiver safely for Android 14+ using ContextCompat
         ContextCompat.registerReceiver(this, AapBroadcastReceiver(), AapBroadcastReceiver.filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+
+        // Asynchronously check and trigger Ahead-Of-Time (AOT) ARM compilation for low-resource head units
+        AotOptimizer.optimizeAsync(this)
     }
 
     private fun isUserUnlocked(): Boolean {

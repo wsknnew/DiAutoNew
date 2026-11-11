@@ -35,7 +35,9 @@ object OtaUpdateManager {
 
     const val GITHUB_OWNER = "wsknnew"
     const val GITHUB_REPO = "DiAutoNew"
+    const val FALLBACK_OWNER = "wskncode"
     const val GITHUB_API_LATEST_RELEASE = "https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/releases/latest"
+    const val GITHUB_API_FALLBACK_RELEASE = "https://api.github.com/repos/$FALLBACK_OWNER/$GITHUB_REPO/releases/latest"
 
     data class ReleaseInfo(
         val tagName: String,
@@ -56,8 +58,8 @@ object OtaUpdateManager {
 
     suspend fun checkForUpdate(): CheckResult = withContext(Dispatchers.IO) {
         try {
-            val url = URL(GITHUB_API_LATEST_RELEASE)
-            val connection = (url.openConnection() as HttpURLConnection).apply {
+            var targetUrl = GITHUB_API_LATEST_RELEASE
+            var connection = (URL(targetUrl).openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 10000
                 readTimeout = 10000
@@ -65,7 +67,20 @@ object OtaUpdateManager {
                 setRequestProperty("Accept", "application/vnd.github.v3+json")
             }
 
-            val responseCode = connection.responseCode
+            var responseCode = connection.responseCode
+            if (responseCode == 404) {
+                connection.disconnect()
+                targetUrl = GITHUB_API_FALLBACK_RELEASE
+                connection = (URL(targetUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    setRequestProperty("User-Agent", "DiAuto-Headunit/${BuildConfig.VERSION_NAME}")
+                    setRequestProperty("Accept", "application/vnd.github.v3+json")
+                }
+                responseCode = connection.responseCode
+            }
+
             if (responseCode == 404) {
                 return@withContext CheckResult.NoReleasesFound(
                     "No releases published on $GITHUB_OWNER/$GITHUB_REPO yet."
@@ -256,7 +271,7 @@ object OtaUpdateManager {
                 suExecutor.runShell(stageCmd)
 
                 val launchComponent = "${context.packageName}/com.andrerinas.openheadunit.main.MainActivity"
-                val installScript = "nohup sh -c 'sleep 1; pm install -r -d /data/local/tmp/diauto_update.apk; am start -n $launchComponent; rm -f /data/local/tmp/diauto_update.apk' > /dev/null 2>&1 &"
+                val installScript = "nohup sh -c 'sleep 1; pm install -r -d /data/local/tmp/diauto_update.apk; (cmd package compile -m speed ${context.packageName} || pm compile -m speed -f ${context.packageName}) >/dev/null 2>&1; am start -n $launchComponent; rm -f /data/local/tmp/diauto_update.apk' > /dev/null 2>&1 &"
                 val exitCode = suExecutor.runShell(installScript)
                 if (exitCode == 0) {
                     AppLog.i("OtaUpdateManager: Detached root install launched successfully!")

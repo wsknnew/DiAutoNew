@@ -39,10 +39,14 @@ object DiagnosticsLogger {
 
     fun getDeviceDiagnosticsReport(): String {
         val selinux = getSELinuxState()
-        val propTcpPort = AdbController.getAdbTcpPort()
+        val propTcpPort = AdbController.getSystemProperty("service.adb.tcp.port", "-1")
+        val persistTcpPort = AdbController.getSystemProperty("persist.adb.tcp.port", "none")
         val adbdState = AdbController.getSystemProperty("init.svc.adbd", "unknown")
+        val usbConfig = AdbController.getSystemProperty("sys.usb.config", "unknown")
+        val usbMode = UsbModeController.detectCurrentUsbMode()
         val (hasRoot, rootInfo) = AdbController.checkRoot()
         val ips = NetworkUtils.getActiveIpAddresses().joinToString { "${it.interfaceName}: ${it.ipAddress}" }
+        val reachability = AdbController.checkReachability(5555)
 
         return """
             === Head Unit Diagnostics Report ===
@@ -54,10 +58,11 @@ object DiagnosticsLogger {
             CPU ABI: ${Build.SUPPORTED_ABIS.joinToString()}
             SELinux Enforce: $selinux
             Root Status: $rootInfo (Available: $hasRoot)
-            service.adb.tcp.port: $propTcpPort
+            USB Mode: $usbMode (sys.usb.config: $usbConfig)
+            service.adb.tcp.port: $propTcpPort (persist: $persistTcpPort)
             init.svc.adbd: $adbdState
             Active IPs: ${if (ips.isNotEmpty()) ips else "None"}
-            Port 5555 Listening: ${AdbController.isPortListening(5555)}
+            Port 5555 Reachability: Loopback=${reachability.loopbackListening}, Wi-Fi=${reachability.wifiListening}
             Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}
         """.trimIndent()
     }

@@ -13,10 +13,18 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.TimeUnit
 
+data class PortReachability(
+    val loopbackListening: Boolean,
+    val wifiListening: Boolean,
+    val wifiIp: String?
+)
+
 data class AdbResult(
     val success: Boolean,
     val isRoot: Boolean,
+    val reachability: PortReachability,
     val message: String,
+    val requiresDevOptionsToggle: Boolean,
     val logs: List<String>
 )
 
@@ -35,17 +43,35 @@ object AdbController {
     )
 
     /**
-     * Test if a given port is actively accepting TCP connections on loopback
+     * Test if a given host & port accepts TCP connections
      */
-    fun isPortListening(port: Int, timeoutMs: Int = 400): Boolean {
+    fun isPortListening(host: String = "127.0.0.1", port: Int = DEFAULT_PORT, timeoutMs: Int = 300): Boolean {
         return try {
             Socket().use { socket ->
-                socket.connect(InetSocketAddress("127.0.0.1", port), timeoutMs)
+                socket.connect(InetSocketAddress(host, port), timeoutMs)
                 true
             }
         } catch (_: Exception) {
             false
         }
+    }
+
+    /**
+     * Check both local loopback (127.0.0.1) and external Wi-Fi interface
+     */
+    fun checkReachability(port: Int = DEFAULT_PORT): PortReachability {
+        val loopback = isPortListening("127.0.0.1", port, 250)
+        val wifiIp = NetworkUtils.getPrimaryIpAddress()
+        val wifi = if (!wifiIp.isNullOrEmpty()) {
+            isPortListening(wifiIp, port, 350)
+        } else {
+            false
+        }
+        return PortReachability(
+            loopbackListening = loopback,
+            wifiListening = wifi,
+            wifiIp = wifiIp
+        )
     }
 
     /**
@@ -71,13 +97,6 @@ object AdbController {
             }
         }
         return Pair(false, "Root binary not detected or permission denied")
-    }
-
-    /**
-     * Read the current service.adb.tcp.port property
-     */
-    fun getAdbTcpPort(): String {
-        return getSystemProperty("service.adb.tcp.port", "-1")
     }
 
     /**
@@ -108,6 +127,34 @@ object AdbController {
     }
 
     /**
+     * Set system property using reflection, setprop command, or root fallback
+     */
+    fun setSystemProperty(key: String, value: String): Boolean {
+        try {
+            val c = Class.forName("android.os.SystemProperties")
+            val set = c.getMethod("set", String::class.java, String::class.java)
+            set.invoke(null, key, value)
+            return true
+        } catch (_: Exception) {
+        }
+
+        try {
+            val p = Runtime.getRuntime().exec(arrayOf("setprop", key, value))
+            p.waitFor(1, TimeUnit.SECONDS)
+            if (p.exitValue() == 0) return true
+        } catch (_: Exception) {
+        }
+
+        val (hasRoot, _) = checkRoot()
+        if (hasRoot) {
+            val exit = runShellCommandDirect("setprop $key $value")
+            return exit == 0
+        }
+
+        return false
+    }
+
+    /**
      * Enable wireless ADB on the given port
      */
     suspend fun enableWirelessAdb(context: Context, port: Int = DEFAULT_PORT): AdbResult = withContext(Dispatchers.IO) {
@@ -121,88 +168,67 @@ object AdbController {
         val (hasRoot, rootInfo) = checkRoot()
         log("Root status: $rootInfo")
 
-        var commandExecuted = false
+        // 1. Set BOTH service and persist properties
+        val portStr = port.toString()
+        setSystemProperty("service.adb.tcp.port", portStr)
+        setSystemProperty("persist.adb.tcp.port", portStr)
+        setSystemProperty("persist.sys.usb.config", "mtp,adb")
+        setSystemProperty("sys.usb.config", "mtp,adb")
+        setSystemProperty("persist.vendor.usb.config", "mtp,adb")
+        setSystemProperty("vendor.usb.config", "mtp,adb")
+        log("Properties configured: service.adb.tcp.port=$portStr, persist.adb.tcp.port=$portStr")
 
+        try {
+            Settings.Global.putInt(context.contentResolver, "development_settings_enabled", 1)
+            Settings.Global.putInt(context.contentResolver, Settings.Global.ADB_ENABLED, 1)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Settings.Global.putInt(context.contentResolver, "adb_wifi_enabled", 1)
+            }
+        } catch (_: Exception) {}
+
+        // 2. If Root is present, restart daemon directly
         if (hasRoot) {
-            log("Executing privileged activation script via su...")
-            val commands = arrayOf(
-                "setprop service.adb.tcp.port $port",
-                "stop adbd",
-                "start adbd",
-                "setprop ctl.restart adbd",
-                "settings put global development_settings_enabled 1",
-                "settings put global adb_enabled 1",
-                "settings put global adb_wifi_enabled 1"
-            )
-
-            val script = commands.joinToString(" && ")
-            val exitCode = runSuCommand(script, logs)
-            commandExecuted = (exitCode == 0)
-            log("SU script execution exit code: $exitCode")
+            log("Executing su daemon restart...")
+            runShellCommandDirect("setprop service.adb.tcp.port $port && stop adbd && sleep 1 && start adbd")
+        } else {
+            // Permissive SELinux trigger attempt
+            try {
+                Runtime.getRuntime().exec(arrayOf("setprop", "ctl.restart", "adbd")).waitFor(1, TimeUnit.SECONDS)
+            } catch (_: Exception) {}
         }
 
-        // Secondary fallback: Non-root execution if su was unavailable or failed
-        if (!commandExecuted) {
-            log("Attempting unprivileged / permissive SELinux commands...")
-            try {
-                Runtime.getRuntime().exec(arrayOf("setprop", "service.adb.tcp.port", port.toString())).waitFor()
-                log("Executed: setprop service.adb.tcp.port $port")
-            } catch (e: Exception) {
-                log("Non-root setprop failed: ${e.message}")
-            }
-
-            try {
-                val c = Class.forName("android.os.SystemProperties")
-                val set = c.getMethod("set", String::class.java, String::class.java)
-                set.invoke(null, "service.adb.tcp.port", port.toString())
-                log("SystemProperties.set reflection invoked")
-            } catch (e: Exception) {
-                log("SystemProperties reflection failed: ${e.message}")
-            }
-
-            try {
-                Settings.Global.putInt(context.contentResolver, "development_settings_enabled", 1)
-                Settings.Global.putInt(context.contentResolver, Settings.Global.ADB_ENABLED, 1)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    Settings.Global.putInt(context.contentResolver, "adb_wifi_enabled", 1)
-                }
-                log("Settings.Global keys updated")
-            } catch (e: Exception) {
-                log("Settings.Global update notice: ${e.message}")
-            }
+        // 3. Test reachability
+        Thread.sleep(700)
+        var reachability = checkReachability(port)
+        if (!reachability.loopbackListening && !reachability.wifiListening) {
+            Thread.sleep(800)
+            reachability = checkReachability(port)
         }
 
-        // Wait up to 2 seconds for adbd to restart and bind to port
-        log("Testing TCP port $port listener...")
-        var listening = false
-        for (i in 1..4) {
-            Thread.sleep(500)
-            if (isPortListening(port)) {
-                listening = true
-                break
-            }
-        }
+        log("Reachability check: Loopback=${reachability.loopbackListening}, Wi-Fi (${reachability.wifiIp})=${reachability.wifiListening}")
 
-        val propPort = getAdbTcpPort()
-        log("Current service.adb.tcp.port: '$propPort'")
-        log("Port $port listening state: $listening")
+        val success = reachability.wifiListening || reachability.loopbackListening
+        val requiresDevOptions = !success && !hasRoot
 
         val message = when {
-            listening -> "Wireless ADB is now ACTIVE and listening on port $port!"
-            hasRoot -> "Commands executed via root, but port $port is not yet responding. Try restarting ADB daemon or check Wi-Fi."
-            else -> "Port $port not open. Root access is required on standard ROMs, or use Developer Options / MTK Engineer Mode."
+            reachability.wifiListening -> "Wireless ADB is fully ACTIVE and listening on ${reachability.wifiIp}:$port!"
+            reachability.loopbackListening -> "ADB listening on localhost! To open for external Wi-Fi, toggle USB Debugging OFF then ON in Developer Options."
+            hasRoot -> "Properties saved via root, but port $port is not responding yet. Try restarting ADB daemon."
+            else -> "Port $port not active yet. Tap 'RELOAD ADB VIA DEV OPTIONS' and toggle USB Debugging OFF then ON."
         }
 
         AdbResult(
-            success = listening,
+            success = success,
             isRoot = hasRoot,
+            reachability = reachability,
             message = message,
+            requiresDevOptionsToggle = requiresDevOptions,
             logs = logs
         )
     }
 
     /**
-     * Disable wireless ADB (revert to USB mode only)
+     * Disable wireless ADB
      */
     suspend fun disableWirelessAdb(): AdbResult = withContext(Dispatchers.IO) {
         val logs = mutableListOf<String>()
@@ -214,23 +240,27 @@ object AdbController {
         log("Disabling Wireless ADB (reverting to USB-only)...")
         val (hasRoot, _) = checkRoot()
 
+        setSystemProperty("service.adb.tcp.port", "-1")
+        setSystemProperty("persist.adb.tcp.port", "")
+
         if (hasRoot) {
-            val script = "setprop service.adb.tcp.port -1 && stop adbd && start adbd"
-            runSuCommand(script, logs)
+            runShellCommandDirect("setprop service.adb.tcp.port -1 && stop adbd && start adbd")
         } else {
             try {
-                Runtime.getRuntime().exec(arrayOf("setprop", "service.adb.tcp.port", "-1")).waitFor()
+                Runtime.getRuntime().exec(arrayOf("setprop", "ctl.restart", "adbd")).waitFor(1, TimeUnit.SECONDS)
             } catch (_: Exception) {}
         }
 
-        Thread.sleep(500)
-        val listening = isPortListening(DEFAULT_PORT)
-        val success = !listening
+        Thread.sleep(600)
+        val reachability = checkReachability(DEFAULT_PORT)
+        val closed = !reachability.loopbackListening && !reachability.wifiListening
 
         AdbResult(
-            success = success,
+            success = closed,
             isRoot = hasRoot,
-            message = if (success) "Wireless ADB disabled. Port is now closed." else "Failed to close port.",
+            reachability = reachability,
+            message = if (closed) "Wireless ADB disabled. Port is closed." else "Properties cleared. Reconnect USB or restart to apply.",
+            requiresDevOptionsToggle = !closed && !hasRoot,
             logs = logs
         )
     }
@@ -242,45 +272,46 @@ object AdbController {
         val logs = mutableListOf<String>()
         val (hasRoot, _) = checkRoot()
 
+        setSystemProperty("service.adb.tcp.port", port.toString())
+        setSystemProperty("persist.adb.tcp.port", port.toString())
+
         if (hasRoot) {
-            val script = "setprop service.adb.tcp.port $port && stop adbd && sleep 1 && start adbd"
-            runSuCommand(script, logs)
+            runShellCommandDirect("setprop service.adb.tcp.port $port && stop adbd && sleep 1 && start adbd")
+        } else {
+            try {
+                Runtime.getRuntime().exec(arrayOf("setprop", "ctl.restart", "adbd")).waitFor(1, TimeUnit.SECONDS)
+            } catch (_: Exception) {}
         }
 
-        Thread.sleep(1200)
-        val listening = isPortListening(port)
+        Thread.sleep(1000)
+        val reachability = checkReachability(port)
 
         AdbResult(
-            success = listening,
+            success = reachability.wifiListening || reachability.loopbackListening,
             isRoot = hasRoot,
-            message = if (listening) "ADB Daemon restarted successfully on port $port" else "ADB daemon restart executed",
+            reachability = reachability,
+            message = if (reachability.wifiListening) {
+                "ADB Daemon active on ${reachability.wifiIp}:$port"
+            } else if (reachability.loopbackListening) {
+                "ADB Daemon active on localhost. Toggle USB Debugging to bind Wi-Fi."
+            } else {
+                "Daemon restart triggered. If not listening, toggle USB Debugging OFF then ON in Dev Options."
+            },
+            requiresDevOptionsToggle = !reachability.wifiListening && !hasRoot,
             logs = logs
         )
     }
 
-    private fun runSuCommand(command: String, logs: MutableList<String>): Int {
+    fun runShellCommandDirect(command: String): Int {
         for (su in SU_BINARY_PATHS) {
             try {
                 if (su != "su" && !File(su).exists()) continue
                 val process = ProcessBuilder(su, "-c", command)
                     .redirectErrorStream(true)
                     .start()
-
-                val reader = BufferedReader(InputStreamReader(process.inputStream))
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    line?.let { logs.add("[$su] $it") }
-                }
-
                 val finished = process.waitFor(5, TimeUnit.SECONDS)
-                if (finished) {
-                    return process.exitValue()
-                } else {
-                    process.destroy()
-                }
-            } catch (e: Exception) {
-                logs.add("[$su error] ${e.message}")
-            }
+                if (finished) return process.exitValue() else process.destroy()
+            } catch (_: Exception) {}
         }
         return -1
     }
