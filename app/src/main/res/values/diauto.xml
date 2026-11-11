@@ -1,11 +1,18 @@
 <?xml version="1.0" ?>
 <resources>
-    <color name="da_background">#0C111B</color>
-    <color name="da_surface">#151E2C</color>
-    <color name="da_border">#2A384B</color>
-    <color name="da_accent">#A6C8FF</color>
-    <color name="da_text">#F1F5FC</color>
-    <color name="da_muted">#A8B6CA</color>
+    <color name="da_background">#090D16</color>
+    <color name="da_surface">#111827</color>
+    <color name="da_surface_variant">#182234</color>
+    <color name="da_surface_raised">#1F2D44</color>
+    <color name="da_border">#1E293B</color>
+    <color name="da_accent">#38BDF8</color>
+    <color name="da_accent_subtle">#132B45</color>
+    <color name="da_text">#F8FAFC</color>
+    <color name="da_muted">#94A3B8</color>
+    <color name="da_success">#22C55E</color>
+    <color name="da_warning">#F59E0B</color>
+    <color name="da_error">#EF4444</color>
+    <color name="da_neutral_dot">#64748B</color>
     <string name="da_brand" translatable="false">DiAuto</string>
     <string name="da_tagline" translatable="false">YOUR PHONE. YOUR DRIVE.</string>
     <string name="da_headline" translatable="false">A familiar drive.</string>

@@ -506,7 +506,7 @@ class HomeFragment : Fragment() {
             usbStatusDot?.setImageResource(R.drawable.shape_dot_green)
             usbConnectButton?.isEnabled = true
             usbConnectButton?.setText(R.string.da_open)
-            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.material_green_700))
+            usbConnectButton?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_success))
             usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, android.R.color.white))
         } else if (firstDevice != null) {
             val friendly = getFriendlyUsbDeviceName(firstDevice)
@@ -515,7 +515,7 @@ class HomeFragment : Fragment() {
             usbStatusDot?.setImageResource(R.drawable.shape_dot_green)
             usbConnectButton?.isEnabled = true
             usbConnectButton?.setText(R.string.da_connect_usb)
-            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.da_accent))
+            usbConnectButton?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_accent))
             usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, R.color.da_background))
         } else if (hasAccessory) {
             usbStatusView?.setText(R.string.da_usb_ready)
@@ -523,7 +523,7 @@ class HomeFragment : Fragment() {
             usbStatusDot?.setImageResource(R.drawable.shape_dot_green)
             usbConnectButton?.isEnabled = true
             usbConnectButton?.setText(R.string.da_connect_usb)
-            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.da_accent))
+            usbConnectButton?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_accent))
             usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, R.color.da_background))
         } else {
             usbStatusView?.setText(R.string.da_plug_in_usb)
@@ -531,7 +531,7 @@ class HomeFragment : Fragment() {
             usbStatusDot?.setImageResource(R.drawable.shape_dot_grey)
             usbConnectButton?.isEnabled = true
             usbConnectButton?.setText(R.string.da_connect_usb)
-            usbConnectButton?.setBackgroundColor(ContextCompat.getColor(ctx, R.color.da_surface))
+            usbConnectButton?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.da_surface_raised))
             usbConnectButton?.setTextColor(ContextCompat.getColor(ctx, R.color.da_muted))
         }
     }
@@ -726,7 +726,10 @@ class HomeFragment : Fragment() {
                 statusView.setText(R.string.da_connected)
                 wifiButton.isEnabled = true
                 wifiButton.setText(R.string.da_open)
-                wifiButton.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.material_green_700))
+                wifiButton.backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.da_success)
+                )
+                wifiButton.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
                 badge?.visibility = View.VISIBLE
                 badge?.setText(R.string.connected)
                 statusDot?.setImageResource(R.drawable.shape_dot_green)
@@ -771,9 +774,10 @@ class HomeFragment : Fragment() {
             else -> {
                 statusView.setText(R.string.da_ready)
                 wifiButton.isEnabled = true
-                wifiButton.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                wifiButton.backgroundTintList = ColorStateList.valueOf(
                     ContextCompat.getColor(requireContext(), R.color.da_accent)
                 )
+                wifiButton.setTextColor(ContextCompat.getColor(requireContext(), R.color.da_background))
                 badge?.visibility = View.VISIBLE
                 badge?.setText(R.string.da_ready)
                 statusDot?.setImageResource(R.drawable.shape_dot_green)

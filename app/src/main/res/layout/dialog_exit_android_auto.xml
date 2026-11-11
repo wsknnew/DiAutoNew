@@ -308,7 +308,7 @@
     <TextView
         android:id="@+id/btnDismiss"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="56dp"
         android:layout_marginTop="18dp"
         android:background="@drawable/bg_exit_dismiss_button"
         android:clickable="true"
