@@ -29,11 +29,15 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
         transport = Socket()
     }
 
-    constructor(socket: Socket, context: Context) : this(socket.inetAddress.hostAddress ?: "", socket.port, context) {
+    constructor(socket: Socket, context: Context) : this(socket.inetAddress?.hostAddress ?: "", socket.port, context) {
         this.transport = socket
         this.singleMessage = socket is NearbySocket
-        // Pre-connected sockets (like NearbySocket) need their streams initialized immediately
-        // because connect() might not be called or might be bypassed.
+        // Pre-connected sockets (like NearbySocket or handed over from NetworkDiscovery)
+        // need their socket options and streams initialized immediately
+        try {
+            transport.soTimeout = 30000
+            applyLowLatencySocketOptions(beforeConnect = false)
+        } catch (_: Exception) {}
         if (socket.isConnected) {
             try {
                 this.input = DataInputStream(socket.getInputStream())
@@ -200,7 +204,7 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
             // WiFi needs tolerance for retransmissions,
             // power-save wakes, and bufferbloat. 1s was causing readFully to timeout
             // mid-header, desynchronizing the stream ("Failed to read full header").
-            transport.soTimeout = 10000
+            transport.soTimeout = 30000
             applyLowLatencySocketOptions(beforeConnect = false)
             // Raw DataInputStream — no BufferedInputStream wrapper.
             // BufferedInputStream + readFully + timeout = internal buffer state corruption.

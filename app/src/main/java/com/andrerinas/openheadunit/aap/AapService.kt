@@ -1838,11 +1838,16 @@ class AapService : Service(), UsbReceiver.Listener {
     private fun acquireWifiLock() {
         if (wifiLock == null) {
             val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "HeadunitRevived:Connection")
+            val lockMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            }
+            wifiLock = wifiManager.createWifiLock(lockMode, "HeadunitRevived:Connection")
         }
         if (wifiLock?.isHeld == false) {
             wifiLock?.acquire()
-            AppLog.i("WifiLock acquired (HIGH_PERF)")
+            AppLog.i("WifiLock acquired (LOW_LATENCY / HIGH_PERF)")
         }
     }
 
@@ -2062,7 +2067,7 @@ class AapService : Service(), UsbReceiver.Listener {
                         ToastUtils.showToast(this, getString(R.string.wifi_disabled_info), Toast.LENGTH_SHORT)
                     }
                 } else if (mode != 3) {
-                    startDiscovery(oneShot = (mode != 2))
+                    startDiscovery(oneShot = false)
                 }
             }
             ACTION_STOP_WIRELESS         -> stopWirelessServer()
@@ -2130,17 +2135,16 @@ class AapService : Service(), UsbReceiver.Listener {
                 } else if (settings.useHotspotAsDefaultWireless && !sessionUp) {
                     userExitedAA = false
                     userExitCooldownUntil = 0L
-                    AppLog.i("AapService: Bluetooth auto-start — Phone Hotspot default mode. Monitoring for hotspot connectivity...")
+                    AppLog.i("AapService: Bluetooth auto-start — Hotspot mode. Monitoring for Wi-Fi connectivity...")
                     serviceScope.launch(Dispatchers.IO) {
                         for (retry in 0..4) {
                             if (commManager.isConnected) break
                             val status = HotspotConnectionHelper.getNetworkStatus(this@AapService)
-                            val targetIp = status.gatewayIp
-                            if (status.isWifiConnected && targetIp != null) {
-                                AppLog.i("AapService: Found phone hotspot at $targetIp, initiating TCP connect...")
+                            if (status.isWifiConnected) {
+                                AppLog.i("AapService: Wi-Fi connected, starting wireless discovery for Headunit Server...")
                                 withContext(Dispatchers.Main) {
                                     if (!commManager.isConnected) {
-                                        commManager.connectAsync(targetIp, HotspotConnectionHelper.AAP_TCP_PORT)
+                                        startDiscovery(oneShot = false)
                                     }
                                 }
                                 break

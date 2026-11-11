@@ -177,8 +177,11 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
     private suspend fun scanGateways(): Boolean {
         var foundAny = false
         try {
-            // Use LinkedHashSet to preserve priority order: Custom IP -> Default Route GW -> DHCP GW -> Heuristics (.1) -> Emulator
+            // Use LinkedHashSet to preserve priority order:
+            // Custom IP -> Last Known Connected IP -> Kernel ARP Table Peers -> Default Route GW -> DHCP GW -> Heuristics (.1) -> Emulator
             val suspects = LinkedHashSet<String>()
+            val myIp = getLocalIpAddress()
+            val subnet = getSubnet()
 
             // 0. User-configured custom phone IP from Settings
             try {
@@ -187,6 +190,19 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
                     suspects.add(customIp.trim())
                 }
             } catch (_: Exception) {}
+
+            // 0b. Last successfully connected IP (if on the same subnet)
+            try {
+                val lastIp = App.provide(context).settings.lastConnectionIp
+                if (lastIp.isNotBlank() && lastIp != myIp) {
+                    if (subnet == null || lastIp.startsWith("$subnet.")) {
+                        suspects.add(lastIp.trim())
+                    }
+                }
+            } catch (_: Exception) {}
+
+            // 0c. Peers in the kernel ARP table (instant peer detection on tablet/external hotspot)
+            collectArpTableSuspects(suspects, myIp, subnet)
 
             // 1. Android ConnectivityManager default route gateway
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -220,6 +236,11 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
             // 4. Special case for emulators: 10.0.2.2 is the host machine
             if (isEmulator()) {
                 suspects.add("10.0.2.2")
+            }
+
+            // Remove self if accidentally collected
+            if (myIp != null) {
+                suspects.remove(myIp)
             }
 
             if (suspects.isNotEmpty()) {
@@ -294,6 +315,27 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
         return null
     }
 
+    private fun collectArpTableSuspects(suspects: MutableSet<String>, myIp: String?, currentSubnet: String?) {
+        try {
+            val arpFile = java.io.File("/proc/net/arp")
+            if (!arpFile.exists() || !arpFile.canRead()) return
+            val lines = arpFile.readLines()
+            for (line in lines) {
+                val tokens = line.trim().split(Regex("\\s+"))
+                if (tokens.size >= 4) {
+                    val ip = tokens[0]
+                    val flags = tokens[2]
+                    // ATF_COM (0x2) indicates resolved ARP entry; flags != "0x0" indicates reachable neighbor
+                    if (flags != "0x0" && flags != "0x00" && ip.contains(".")) {
+                        if (ip != myIp && (currentSubnet == null || ip.startsWith("$currentSubnet."))) {
+                            suspects.add(ip)
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     private suspend fun checkAndReport(ip: String): Boolean {
         if (reportedIps.contains(ip)) return true
 
@@ -304,39 +346,22 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
         // and connecting is work.
         coroutineContext.ensureActive()
 
-        // Check Port 5289 (Wifi Launcher) - prioritizing this
-        val launcherSocket = checkPort(ip, 5289, timeout = 300)
-        if (launcherSocket != null) {
-            // The phone-side Wireless Helper watches for this inbound probe to auto-launch
-            // itself. Hold the socket open briefly before closing so it has time to react;
-            // closing it instantly (as the consolidated scan did) stopped waking the helper,
-            // so the user had to open it by hand.
-            val holdMs = 500L
-            AppLog.i("NetworkDiscovery: Found Wifi Launcher on $ip:5289, holding probe ${holdMs}ms to wake the helper")
-            reportedIps.add(ip)
-            var released = false
-            try {
-                try { delay(holdMs) } catch (e: Exception) {}
-                withContext(Dispatchers.Main) {
-                    try { launcherSocket.close() } catch (e: Exception) {}
-                    released = true
-                    AppLog.i("NetworkDiscovery: Wifi Launcher probe released; awaiting inbound helper connection on 5288")
-                    listener.onServiceFound(ip, 5289)
-                }
-            } finally {
-                // The hold is deliberate (it is what wakes the helper), so this socket is open
-                // for 500 ms by design. A cancellation anywhere in that window used to leak it.
-                if (!released) try { launcherSocket.close() } catch (e: Exception) {}
-            }
-            return true
+        // Check Port 5277 (Standard Android Auto Headunit Server) first - native developer server on phone
+        var hostIsAlive = false
+        val serverSocket = try {
+            val socket = Socket()
+            socket.connect(InetSocketAddress(ip, 5277), 250)
+            hostIsAlive = true
+            socket
+        } catch (e: java.net.ConnectException) {
+            // Host is alive (responded with TCP RST), but port 5277 is not listening
+            hostIsAlive = true
+            null
+        } catch (e: Exception) {
+            // Host is unreachable / ARP timeout / socket timeout - host does not exist or radio is silent
+            null
         }
 
-        // Check Port 5277 (Standard Headunit). Re-checked because the 5289 probe above can have
-        // spent 300 ms, or 500 ms more holding a launcher socket open, since the last check.
-        coroutineContext.ensureActive()
-
-        // Check Port 5277 (Standard Headunit)
-        val serverSocket = checkPort(ip, 5277, timeout = 300)
         if (serverSocket != null) {
             AppLog.i("NetworkDiscovery: Found Headunit Server on $ip:5277")
             reportedIps.add(ip)
@@ -361,6 +386,41 @@ class NetworkDiscovery(private val context: Context, private val listener: Liste
                     AppLog.w("NetworkDiscovery: Handover of $ip:5277 aborted; closing the probe socket")
                     try { serverSocket.close() } catch (e: Exception) {}
                 }
+            }
+            return true
+        }
+
+        // Only probe Port 5289 (Wifi Launcher helper) if the host was actually alive (responded to 5277 with RST).
+        // If the host timed out completely, probing 5289 on that same dead IP will only waste another 250ms.
+        if (!hostIsAlive) {
+            return false
+        }
+
+        coroutineContext.ensureActive()
+
+        // Check Port 5289 (Wifi Launcher helper)
+        val launcherSocket = checkPort(ip, 5289, timeout = 250)
+        if (launcherSocket != null) {
+            // The phone-side Wireless Helper watches for this inbound probe to auto-launch
+            // itself. Hold the socket open briefly before closing so it has time to react;
+            // closing it instantly (as the consolidated scan did) stopped waking the helper,
+            // so the user had to open it by hand.
+            val holdMs = 500L
+            AppLog.i("NetworkDiscovery: Found Wifi Launcher on $ip:5289, holding probe ${holdMs}ms to wake the helper")
+            reportedIps.add(ip)
+            var released = false
+            try {
+                try { delay(holdMs) } catch (e: Exception) {}
+                withContext(Dispatchers.Main) {
+                    try { launcherSocket.close() } catch (e: Exception) {}
+                    released = true
+                    AppLog.i("NetworkDiscovery: Wifi Launcher probe released; awaiting inbound helper connection on 5288")
+                    listener.onServiceFound(ip, 5289)
+                }
+            } finally {
+                // The hold is deliberate (it is what wakes the helper), so this socket is open
+                // for 500 ms by design. A cancellation anywhere in that window used to leak it.
+                if (!released) try { launcherSocket.close() } catch (e: Exception) {}
             }
             return true
         }

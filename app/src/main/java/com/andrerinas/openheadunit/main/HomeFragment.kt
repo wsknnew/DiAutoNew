@@ -366,8 +366,7 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val netStatus = HotspotConnectionHelper.getNetworkStatus(requireContext())
             if (netStatus.isWifiConnected && (app.settings.useHotspotAsDefaultWireless || netStatus.isPhoneHotspot || netStatus.gatewayIp != null)) {
-                val targetIp = netStatus.gatewayIp ?: app.settings.customHotspotPhoneIp.ifEmpty { "192.168.43.1" }
-                connectToHotspotIp(targetIp)
+                startHotspotConnectionFlow(netStatus)
             } else if (app.settings.useHotspotAsDefaultWireless) {
                 connectViaHotspot()
             } else {
@@ -550,8 +549,12 @@ class HomeFragment : Fragment() {
             val netStatus = HotspotConnectionHelper.getNetworkStatus(requireContext())
             if (!isAdded) return@launch
             if (netStatus.isWifiConnected && (app.settings.useHotspotAsDefaultWireless || netStatus.isPhoneHotspot || netStatus.gatewayIp != null)) {
-                val targetIp = netStatus.gatewayIp ?: app.settings.customHotspotPhoneIp.ifEmpty { "192.168.43.1" }
-                nameView.text = "${netStatus.ssid ?: "Hotspot"} • $targetIp:5277"
+                val ipDisplay = when {
+                    app.settings.customHotspotPhoneIp.isNotBlank() -> app.settings.customHotspotPhoneIp.trim()
+                    app.settings.lastConnectionIp.isNotBlank() -> app.settings.lastConnectionIp.trim()
+                    else -> netStatus.gatewayIp ?: "Auto"
+                }
+                nameView.text = "${netStatus.ssid ?: "Hotspot"} • $ipDisplay:5277"
                 switchBtn.text = getString(R.string.da_switch_phone)
                 switchBtn.setOnClickListener {
                     cancelAutoConnectCountdown()
@@ -865,13 +868,67 @@ class HomeFragment : Fragment() {
     private fun connectViaHotspot() {
         viewLifecycleOwner.lifecycleScope.launch {
             val status = HotspotConnectionHelper.getNetworkStatus(requireContext())
-            val targetIp = status.gatewayIp
-            if (status.isWifiConnected && targetIp != null) {
-                connectToHotspotIp(targetIp)
+            if (status.isWifiConnected) {
+                startHotspotConnectionFlow(status)
             } else {
                 HotspotConnectionDialog.show(childFragmentManager)
             }
         }
+    }
+
+    private fun startHotspotConnectionFlow(netStatus: HotspotConnectionHelper.NetworkStatus) {
+        cancelAutoConnectCountdown()
+        app.settings.wifiConnectionMode = 1
+        if (!WirelessScopePolicy.allowsWireless(app.settings.connectionModes)) {
+            app.settings.connectionModes =
+                app.settings.connectionModes + Settings.ConnectionMode.WIFI
+        }
+
+        val currentView = view
+        val wifiButton = currentView?.findViewById<MaterialButton>(R.id.wifi_button)
+        val statusView = currentView?.findViewById<TextView>(R.id.connection_status)
+        val badge = currentView?.findViewById<TextView>(R.id.connection_status_badge)
+        val statusDot = currentView?.findViewById<ImageView>(R.id.status_dot)
+        val stepText = currentView?.findViewById<TextView>(R.id.connection_step_text)
+        val cancelBtn = currentView?.findViewById<View>(R.id.btn_cancel_connect)
+
+        val targetLabel = when {
+            app.settings.customHotspotPhoneIp.isNotBlank() -> app.settings.customHotspotPhoneIp.trim()
+            app.settings.lastConnectionIp.isNotBlank() -> app.settings.lastConnectionIp.trim()
+            else -> netStatus.ssid ?: "Hotspot"
+        }
+
+        statusView?.setText(R.string.da_connecting)
+        wifiButton?.isEnabled = false
+        wifiButton?.text = getString(R.string.da_connecting_to, targetLabel)
+        badge?.visibility = View.VISIBLE
+        badge?.setText(R.string.da_connecting)
+        statusDot?.setImageResource(R.drawable.shape_dot_amber)
+        stepText?.visibility = View.VISIBLE
+        stepText?.setText(R.string.step_2_wifi)
+        cancelBtn?.visibility = View.VISIBLE
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            delay(12000)
+            if (isAdded && !app.commManager.isConnected) {
+                view?.findViewById<MaterialButton>(R.id.wifi_button)?.let { btn ->
+                    btn.isEnabled = true
+                    if (app.commManager.connectionState.value is CommManager.ConnectionState.Disconnected) {
+                        btn.setText(if (app.settings.useHotspotAsDefaultWireless) R.string.da_hotspot_connect else R.string.da_connect)
+                    }
+                }
+            }
+        }
+
+        (activity as? MainActivity)?.beginAutoConnect(
+            "hotspot AA discovery ($targetLabel)", MainActivity.ConnectionUiMode.PILL)
+
+        val ctx = requireContext().applicationContext
+        try {
+            ContextCompat.startForegroundService(ctx, Intent(ctx, AapService::class.java).apply {
+                action = AapService.ACTION_START_WIRELESS_SCAN
+            })
+        } catch (_: Exception) {}
     }
 
     private fun connectToHotspotIp(targetIp: String) {
@@ -931,12 +988,11 @@ class HomeFragment : Fragment() {
         if (app.settings.autoConnectOnHotspot) {
             viewLifecycleOwner.lifecycleScope.launch {
                 val status = HotspotConnectionHelper.getNetworkStatus(requireContext())
-                val targetIp = status.gatewayIp
-                if (status.isWifiConnected && targetIp != null) {
+                if (status.isWifiConnected) {
                     hasAttemptedAutoConnectOnOpen = true
                     delay(400)
                     if (isAdded && !app.commManager.isConnected && view != null) {
-                        connectToHotspotIp(targetIp)
+                        startHotspotConnectionFlow(status)
                     }
                     return@launch
                 }

@@ -23,7 +23,7 @@ internal class AapReadSingleMessage(
             // NEXT message — the phone can be idle for minutes and that's normal.
             // TCP keepAlive will detect a truly dead connection.
             val isSocket = connection is com.andrerinas.openheadunit.connection.SocketAccessoryConnection
-            val timeout = if (isSocket) 15000 else 0
+            val timeout = if (isSocket) 30000 else 0
             val headerSize = connection.recvBlocking(recvHeader.buf, recvHeader.buf.size, timeout, true)
             when (AapReadRecoveryPolicy.afterHeaderRead(headerSize, AapMessageIncoming.EncryptedHeader.SIZE, isSocket)) {
                 AapReadRecoveryPolicy.Outcome.CONTINUE -> {

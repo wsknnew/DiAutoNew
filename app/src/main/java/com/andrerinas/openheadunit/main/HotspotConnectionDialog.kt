@@ -63,9 +63,14 @@ class HotspotConnectionDialog : DialogFragment() {
         }
 
         view.findViewById<View>(R.id.btn_connect_hotspot).setOnClickListener {
-            val status = currentStatus
-            val targetIp = status?.gatewayIp ?: "192.168.43.1"
-            connectToPhone(targetIp)
+            val app = App.provide(requireContext())
+            app.settings.wifiConnectionMode = 1
+            ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java).apply {
+                action = AapService.ACTION_START_WIRELESS_SCAN
+            })
+            Toast.makeText(context, R.string.scanning_network_for_phone, Toast.LENGTH_SHORT).show()
+            (activity as? MainActivity)?.beginAutoConnect("hotspot AA discovery", MainActivity.ConnectionUiMode.PILL)
+            dismiss()
         }
 
         view.findViewById<View>(R.id.btn_scan_network).setOnClickListener {
@@ -173,10 +178,16 @@ class HotspotConnectionDialog : DialogFragment() {
 
             headUnitIpText.text = getString(R.string.head_unit_ip_format, status.localIp ?: "—")
 
-            if (status.gatewayIp != null) {
-                phoneIpText.text = getString(R.string.gateway_ip_format, status.gatewayIp)
+            val displayPhoneIp = when {
+                app.settings.customHotspotPhoneIp.isNotBlank() -> app.settings.customHotspotPhoneIp.trim()
+                app.settings.lastConnectionIp.isNotBlank() -> app.settings.lastConnectionIp.trim()
+                status.gatewayIp != null -> status.gatewayIp
+                else -> null
+            }
+            if (displayPhoneIp != null) {
+                phoneIpText.text = getString(R.string.gateway_ip_format, displayPhoneIp)
                 connectBtn.isEnabled = true
-                connectBtn.text = getString(R.string.connect_to_phone_hotspot_ip, status.gatewayIp)
+                connectBtn.text = getString(R.string.connect_to_phone_hotspot_ip, displayPhoneIp)
             } else {
                 phoneIpText.text = getString(R.string.gateway_ip_none)
                 connectBtn.isEnabled = true
