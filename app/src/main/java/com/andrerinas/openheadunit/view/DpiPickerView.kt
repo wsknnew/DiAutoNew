@@ -253,15 +253,15 @@ class DpiPickerView @JvmOverloads constructor(
         // assigns slider.value, and a Slider throws IllegalStateException for a value that is not
         // valueFrom plus a whole number of steps. 1 so a typed 175 stays 175 rather than snapping.
         private const val STEP = 1
-        private const val SMALL_REP = 132
-        private const val MEDIUM_REP = 175
-        private const val LARGE_REP = 218
+        private const val SMALL_REP = 160
+        private const val MEDIUM_REP = 190
+        private const val LARGE_REP = 220
         private const val HUGE_REP = 320
         // Small covers everything below and Huge everything above; Medium and Large are
         // the narrow central bands. Boundaries are the midpoints between representatives.
-        private const val SMALL_MEDIUM_MAX = (SMALL_REP + MEDIUM_REP) / 2   // 153
-        private const val MEDIUM_LARGE_MAX = (MEDIUM_REP + LARGE_REP) / 2   // 196
-        private const val LARGE_HUGE_MAX = (LARGE_REP + HUGE_REP) / 2       // 269
+        private const val SMALL_MEDIUM_MAX = (SMALL_REP + MEDIUM_REP) / 2   // 175
+        private const val MEDIUM_LARGE_MAX = (MEDIUM_REP + LARGE_REP) / 2   // 205
+        private const val LARGE_HUGE_MAX = (LARGE_REP + HUGE_REP) / 2       // 270
 
         // Demo sweep range and timing: the illustration alone sweeps the full 160..640 DPI range so
         // the effect on how much content fits is clearly visible.

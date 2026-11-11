@@ -1104,8 +1104,8 @@ class Settings(private val context: Context) {
     companion object {
         const val PREFS_NAME = "settings"
 
-        /** Default DPI scale: Small (132 DPI) */
-        const val DEFAULT_DPI_SMALL = 132
+        /** Default DPI scale: Small (160 DPI) */
+        const val DEFAULT_DPI_SMALL = 160
 
         /** Default coordinates: Jakarta, Indonesia (-6.2087634, 106.8455990) */
         const val DEFAULT_LOCATION_LATITUDE = -6.2087634
